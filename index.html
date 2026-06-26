@@ -227,6 +227,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
 </div>
 
 <div id="dashboard">
+  <div id="data-scope-banner" style="background:var(--bg-2); border-bottom:1px solid var(--border); color:var(--text-2); font-size:12px; padding:8px 24px; text-align:center;"></div>
   <div class="page-tabs">
     <button class="page-tab-btn active" id="tab-btn-performance" onclick="switchPage('performance')">📦 Performance Transportadoras</button>
     <button class="page-tab-btn" id="tab-btn-tempo" onclick="switchPage('tempo')">⏱️ Tempo na Usina</button>
@@ -686,13 +687,25 @@ async function saveEntriesToFirestore(collectionName, entries, progressEl) {
   }
 }
 
-async function loadFromFirestore() {
+let isFullDataLoaded = false;
+
+function getCutoffMonthKey(monthsBack) {
+  const d = new Date();
+  d.setMonth(d.getMonth() - monthsBack);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+async function loadFromFirestore(fullLoad = false) {
   document.getElementById('loading-screen').classList.add('show');
+  document.getElementById('loading-msg').innerText = fullLoad ? 'Carregando histórico completo...' : 'Carregando últimos 3 meses...';
+  isFullDataLoaded = fullLoad;
   try {
-    const [perfSnap, tempoSnap] = await Promise.all([
-      db.collection('performance_entries').get(),
-      db.collection('tempo_usina_entries').get()
-    ]);
+    const cutoff = getCutoffMonthKey(3); // últimos 3 meses por padrão
+
+    const perfQuery = fullLoad ? db.collection('performance_entries') : db.collection('performance_entries').where('monthKey', '>=', cutoff);
+    const tempoQuery = fullLoad ? db.collection('tempo_usina_entries') : db.collection('tempo_usina_entries').where('monthKey', '>=', cutoff);
+
+    const [perfSnap, tempoSnap] = await Promise.all([perfQuery.get(), tempoQuery.get()]);
 
     if (!perfSnap.empty) {
       const carrierMap = new Map();
@@ -707,6 +720,8 @@ async function loadFromFirestore() {
       state.carriers = carrierMap;
       state.months = Array.from(monthSet).sort();
       state.materials = Array.from(materialSet).sort();
+    } else {
+      state.carriers = new Map(); state.months = []; state.materials = [];
     }
 
     if (!tempoSnap.empty) {
@@ -720,6 +735,8 @@ async function loadFromFirestore() {
       stateTempo.allEntries = entries;
       stateTempo.months = Array.from(monthSet2).sort();
       stateTempo.materials = Array.from(materialSet2).sort();
+    } else {
+      stateTempo.allEntries = []; stateTempo.months = []; stateTempo.materials = [];
     }
 
     buildPlateCarrierMap();
@@ -727,12 +744,16 @@ async function loadFromFirestore() {
     applyFilters();
     populateFiltersTempo();
     applyFiltersTempo();
+    updateDataScopeBanner(fullLoad, perfSnap.size + tempoSnap.size);
 
     if (!perfSnap.empty || !tempoSnap.empty) {
       document.getElementById('upload-screen').style.display = 'none';
       document.getElementById('dashboard').classList.add('show');
       document.getElementById('header-file-info').classList.add('show');
       document.getElementById('header-filename').innerText = 'Base sincronizada (Firebase)';
+    } else if (!fullLoad) {
+      // não achou nada nos últimos 3 meses — tenta carregar tudo antes de pedir upload
+      return loadFromFirestore(true);
     } else {
       document.getElementById('upload-screen').style.display = 'flex';
       document.getElementById('dashboard').classList.remove('show');
@@ -742,6 +763,16 @@ async function loadFromFirestore() {
     document.getElementById('upload-screen').style.display = 'flex';
   }
   document.getElementById('loading-screen').classList.remove('show');
+}
+
+function updateDataScopeBanner(fullLoad, count) {
+  const banner = document.getElementById('data-scope-banner');
+  if (!banner) return;
+  if (fullLoad) {
+    banner.innerHTML = `📚 Exibindo <strong>histórico completo</strong> (${count} registros). <a onclick="loadFromFirestore(false)" style="color:var(--accent); cursor:pointer; text-decoration:underline;">Voltar para últimos 3 meses</a>`;
+  } else {
+    banner.innerHTML = `🗓️ Exibindo apenas os <strong>últimos 3 meses</strong> (${count} registros) para economizar leituras. <a onclick="loadFromFirestore(true)" style="color:var(--accent); cursor:pointer; text-decoration:underline;">Carregar histórico completo</a>`;
+  }
 }
 
 let state = {
