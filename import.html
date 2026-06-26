@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TransAnalytics Pro — Importador</title>
+<style>
+  :root {
+    --bg-0: #06080f; --bg-1: #0b0f1a; --bg-2: #111729; --bg-3: #161d33;
+    --border: #1f2740; --text-1: #e8ecf5; --text-2: #9aa5b8; --text-3: #6b7488;
+    --accent: #00c8aa; --coral: #ff6b6b; --radius: 8px; --radius-lg: 14px;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg-0); color: var(--text-1); font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; min-height: 100vh; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 40px 24px; }
+  h1 { font-size: 18px; margin-bottom: 4px; }
+  .sub { color: var(--text-2); font-size: 13px; margin-bottom: 28px; }
+  .card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 20px; }
+  .card h2 { font-size: 14px; margin: 0 0 6px; }
+  .card p { font-size: 12px; color: var(--text-2); margin: 0 0 16px; }
+  input[type=email], input[type=password] { width: 100%; background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; color: var(--text-1); font-size: 13px; margin-bottom: 10px; }
+  .btn { background: var(--bg-3); border: 1px solid var(--border); color: var(--text-1); padding: 9px 16px; border-radius: var(--radius); font-size: 13px; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #06140f; border: none; font-weight: 600; }
+  .dropzone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 22px; text-align: center; cursor: pointer; position: relative; margin-bottom: 10px; }
+  .dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .status { font-size: 12px; color: var(--text-3); min-height: 16px; }
+  .log { background: var(--bg-0); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; font-size: 11px; font-family: monospace; color: var(--text-2); max-height: 200px; overflow-y: auto; margin-top: 10px; white-space: pre-wrap; }
+  .err { color: var(--coral); font-size: 12px; min-height: 16px; }
+  #app { display: none; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>TransAnalytics Pro — Importador Rápido</h1>
+  <p class="sub">Ferramenta leve só para importar planilhas direto no Firestore (sem dashboard, sem gráficos).</p>
+
+  <div class="card" id="login-card">
+    <h2>Login</h2>
+    <p>Use o mesmo e-mail/senha cadastrados no dashboard.</p>
+    <input type="email" id="login-email" placeholder="E-mail" />
+    <input type="password" id="login-password" placeholder="Senha" onkeydown="if(event.key==='Enter') loginUser()" />
+    <button class="btn btn-primary" onclick="loginUser()">Entrar</button>
+    <p class="err" id="login-error"></p>
+  </div>
+
+  <div id="app">
+    <div class="card">
+      <h2>📦 Performance Transportadoras</h2>
+      <p>Suba a planilha com a coluna "Transportadora" (1 aba).</p>
+      <div class="dropzone"><input type="file" id="file-perf" accept=".xlsx,.xls" /><span>Clique ou arraste o arquivo aqui</span></div>
+      <div class="status" id="status-perf"></div>
+      <div class="log" id="log-perf" style="display:none"></div>
+    </div>
+
+    <div class="card">
+      <h2>⏱️ Tempo Total UOB</h2>
+      <p>Suba a planilha com a coluna "Tempo na usina" (1 aba).</p>
+      <div class="dropzone"><input type="file" id="file-tempo" accept=".xlsx,.xls" /><span>Clique ou arraste o arquivo aqui</span></div>
+      <div class="status" id="status-tempo"></div>
+      <div class="log" id="log-tempo" style="display:none"></div>
+    </div>
+
+    <button class="btn" onclick="auth.signOut()">Sair</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCauvny8DdHEuHNJtJaaXKSnvWHHzUUBaw",
+  authDomain: "transanalyticspro.firebaseapp.com",
+  projectId: "transanalyticspro",
+  storageBucket: "transanalyticspro.firebasestorage.app",
+  messagingSenderId: "696652164052",
+  appId: "1:696652164052:web:93b9c9e3e049f3fbb20441"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+function loginUser() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.innerText = '';
+  if (!email || !password) { errEl.innerText = 'Informe e-mail e senha.'; return; }
+  auth.signInWithEmailAndPassword(email, password).catch(() => { errEl.innerText = 'E-mail ou senha inválidos.'; });
+}
+
+auth.onAuthStateChanged(user => {
+  document.getElementById('login-card').style.display = user ? 'none' : 'block';
+  document.getElementById('app').style.display = user ? 'block' : 'none';
+});
+
+/* ===== mesma lógica de parsing/dedupe do dashboard ===== */
+function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+
+function simpleHash(str) {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) { hash = ((hash << 5) + hash) + str.charCodeAt(i); hash = hash & hash; }
+  return 'h' + Math.abs(hash).toString(36);
+}
+function sanitizeDocId(s) {
+  const clean = String(s).replace(/[\/\.#\$\[\]\s]/g, '_').trim();
+  return clean || simpleHash(String(Math.random()));
+}
+
+function detectColumns(headers) {
+  const findCol = (keys) => headers.findIndex(h => keys.some(k => norm(h).includes(k)));
+  return {
+    carrier: findCol(['transportadora', 'empresa', 'carrier', 'nome']),
+    driver: findCol(['motorista', 'cpf', 'driver']),
+    vehicle: findCol(['placa', 'veiculo', 'frota', 'identificador']),
+    weight: findCol(['peso liquido', 'peso liq', 'tonelagem']),
+    material: findCol(['material', 'produto', 'mercadoria']),
+    date: findCol(['data registro', 'mes/ano', 'data', 'date', 'entrada']),
+    divApurada: findCol(['divergencia de peso apurada', 'peso apurado', 'dif peso']),
+    divDefinida: findCol(['divergencia de peso definida', 'limite de tolerancia', 'limite peso'])
+  };
+}
+function extractCPF(val) {
+  const s = String(val || '').trim();
+  const match = s.match(/CPF:\s*([0-9.\-]+)/i);
+  if (match) return match[1].replace(/\D/g, '');
+  const numbers = s.replace(/\D/g, '');
+  if (numbers.length === 11) return numbers;
+  return s;
+}
+function getMinLimit(limitStr) {
+  if (!limitStr) return null;
+  const s = String(limitStr).replace(',', '.');
+  const matches = s.match(/(-?\d+\.?\d*)/g);
+  if (matches && matches.length > 0) return Math.min(...matches.map(Number));
+  return null;
+}
+
+function buildPerfFlatEntries(rows) {
+  const headers = rows[0];
+  const cols = detectColumns(headers);
+  if (cols.carrier === -1) return [];
+  const flatEntries = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length === 0 || !row[cols.carrier]) continue;
+    const carrierName = String(row[cols.carrier]).split('[')[0].trim();
+    const cpf = cols.driver !== -1 ? extractCPF(row[cols.driver]) : '';
+    const placa = cols.vehicle !== -1 ? String(row[cols.vehicle] || '').trim().toUpperCase() : '';
+    let weight = cols.weight !== -1 ? (parseFloat(row[cols.weight]) || 0) : 0;
+    weight = Math.abs(weight);
+    let material = 'DIVERSOS';
+    if (cols.material !== -1) material = String(row[cols.material] || 'DIVERSOS').split('[')[0].trim().toUpperCase();
+    let isDiv = false;
+    if (cols.divApurada !== -1 && cols.divDefinida !== -1) {
+      const apurada = parseFloat(row[cols.divApurada]);
+      const minLimit = getMinLimit(row[cols.divDefinida]);
+      if (!isNaN(apurada) && minLimit !== null && apurada < minLimit) isDiv = true;
+    }
+    let monthKey = 'Sem Data', dateTs = null;
+    if (cols.date !== -1) {
+      let date = row[cols.date];
+      if (!(date instanceof Date)) date = new Date(date);
+      if (!isNaN(date)) { monthKey = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`; dateTs = date.getTime(); }
+    }
+    const entryId = sanitizeDocId([carrierName, placa, material, weight, monthKey, dateTs].join('|'));
+    flatEntries.push({ id: entryId, carrierName, cpf, placa, weight, material, isDiv, monthKey, dateTs });
+  }
+  return flatEntries;
+}
+
+function detectColumnsTempo(headers) {
+  const findCol = (keys) => headers.findIndex(h => keys.some(k => norm(h).includes(k)));
+  return {
+    placa: findCol(['placa']), movimento: findCol(['movimento']), ndoc: findCol(['n°doc', 'ndoc', 'n doc']),
+    material: findCol(['material']), tipoDoc: findCol(['tipodoc']), entrada: findCol(['entrada']),
+    saida: findCol(['saida']), tempoEntrePesos: findCol(['tempoentrepesos']), tempoUsina: findCol(['tempo na usina', 'tempousina'])
+  };
+}
+function parseTimeStrToMinutes(val) {
+  if (val === null || val === undefined || val === '') return null;
+  if (val instanceof Date) return val.getHours() * 60 + val.getMinutes();
+  const s = String(val).trim();
+  const m = s.match(/^(\d{1,3}):(\d{2})/);
+  if (m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  const n = parseFloat(s.replace(',', '.'));
+  if (!isNaN(n) && n < 10) return Math.round(n * 24 * 60);
+  return null;
+}
+function parseBRDateTime(val) {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val) ? null : val.getTime();
+  const s = String(val).trim();
+  const m = s.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+  if (m) { const d = new Date(+m[3], +m[2]-1, +m[1], +m[4], +m[5]); return isNaN(d) ? null : d.getTime(); }
+  const d2 = new Date(s);
+  return isNaN(d2) ? null : d2.getTime();
+}
+function buildTempoFlatEntries(rows) {
+  const headers = rows[0];
+  const cols = detectColumnsTempo(headers);
+  if (cols.placa === -1 || (cols.tempoUsina === -1 && cols.tempoEntrePesos === -1)) return [];
+  const entries = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length === 0 || !row[cols.placa]) continue;
+    const placa = String(row[cols.placa] || '').trim().toUpperCase();
+    let material = 'DIVERSOS';
+    if (cols.material !== -1) material = String(row[cols.material] || 'DIVERSOS').split('[')[0].trim().toUpperCase();
+    const tipoDoc = cols.tipoDoc !== -1 ? String(row[cols.tipoDoc] || '').trim().toUpperCase() : '';
+    const ndoc = cols.ndoc !== -1 ? String(row[cols.ndoc] || '').trim() : '';
+    const movimento = cols.movimento !== -1 ? String(row[cols.movimento] || '').trim() : '';
+    const entradaTs = cols.entrada !== -1 ? parseBRDateTime(row[cols.entrada]) : null;
+    const saidaTs = cols.saida !== -1 ? parseBRDateTime(row[cols.saida]) : null;
+    const tempoUsina = cols.tempoUsina !== -1 ? parseTimeStrToMinutes(row[cols.tempoUsina]) : null;
+    const tempoEntrePesos = cols.tempoEntrePesos !== -1 ? parseTimeStrToMinutes(row[cols.tempoEntrePesos]) : null;
+    if (tempoUsina === null) continue;
+    let monthKey = 'Sem Data';
+    const dateTs = entradaTs;
+    if (dateTs !== null) { const d = new Date(dateTs); monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+    let entryId;
+    if (movimento) entryId = sanitizeDocId('mov_' + movimento);
+    else if (ndoc) entryId = sanitizeDocId('doc_' + placa + '_' + ndoc);
+    else entryId = sanitizeDocId([placa, material, entradaTs, tempoUsina].join('|'));
+    entries.push({ id: entryId, placa, material, tipoDoc, entradaTs, saidaTs, tempoUsina, tempoEntrePesos, monthKey, dateTs });
+  }
+  return entries;
+}
+
+/* ===== gravação em lotes, com vários lotes em paralelo (mais rápido) ===== */
+async function saveEntriesFast(collectionName, entries, statusEl, logEl) {
+  if (!entries.length) { statusEl.innerText = 'Nenhum registro válido encontrado nessa planilha.'; return; }
+  const colRef = db.collection(collectionName);
+  const chunkSize = 400;
+  const concurrency = 6; // nº de lotes gravados ao mesmo tempo
+  const chunks = [];
+  for (let i = 0; i < entries.length; i += chunkSize) chunks.push(entries.slice(i, i + chunkSize));
+
+  logEl.style.display = 'block';
+  logEl.innerText = `Iniciando importação de ${entries.length} registros em ${chunks.length} lotes...\n`;
+
+  let done = 0;
+  let errors = 0;
+  const startTime = Date.now();
+
+  async function runChunk(chunk, idx) {
+    const batch = db.batch();
+    chunk.forEach(e => { const { id, ...data } = e; batch.set(colRef.doc(id), data); });
+    try {
+      await batch.commit();
+      done++;
+    } catch (err) {
+      errors++;
+      logEl.innerText += `❌ Lote ${idx + 1} falhou: ${err.message}\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+    statusEl.innerText = `Salvando... ${done}/${chunks.length} lotes (${Math.min((done) * chunkSize, entries.length)}/${entries.length} registros)`;
+  }
+
+  // processa em ondas de N lotes simultâneos
+  for (let i = 0; i < chunks.length; i += concurrency) {
+    const wave = chunks.slice(i, i + concurrency).map((c, j) => runChunk(c, i + j));
+    await Promise.all(wave);
+  }
+
+  const seconds = ((Date.now() - startTime) / 1000).toFixed(1);
+  logEl.innerText += `\n✅ Concluído em ${seconds}s — ${done} lotes ok, ${errors} com erro.\n`;
+  logEl.scrollTop = logEl.scrollHeight;
+  statusEl.innerText = errors > 0
+    ? `⚠️ Concluído com ${errors} lote(s) com erro. Veja o log abaixo.`
+    : `✅ ${entries.length} registros sincronizados em ${seconds}s. IDs determinísticos — reenviar o mesmo arquivo não duplica.`;
+}
+
+function handleImport(file, statusElId, logElId) {
+  const statusEl = document.getElementById(statusElId);
+  const logEl = document.getElementById(logElId);
+  statusEl.innerText = '⏳ Lendo arquivo...';
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array', cellDates: true });
+      let perfFlat = [], tempoFlat = [];
+      wb.SheetNames.forEach(sheetName => {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1 });
+        if (!rows || rows.length < 2 || !rows[0]) return;
+        const headers = rows[0];
+        const tempoCols = detectColumnsTempo(headers);
+        const perfCols = detectColumns(headers);
+        if (tempoCols.placa !== -1 && (tempoCols.tempoUsina !== -1 || tempoCols.tempoEntrePesos !== -1)) tempoFlat = buildTempoFlatEntries(rows);
+        else if (perfCols.carrier !== -1) perfFlat = buildPerfFlatEntries(rows);
+      });
+
+      if (!perfFlat.length && !tempoFlat.length) {
+        statusEl.innerText = '❌ Não identifiquei colunas conhecidas nessa planilha.';
+        return;
+      }
+      if (perfFlat.length) await saveEntriesFast('performance_entries', perfFlat, statusEl, logEl);
+      if (tempoFlat.length) await saveEntriesFast('tempo_usina_entries', tempoFlat, statusEl, logEl);
+    } catch (err) {
+      statusEl.innerText = '❌ Erro: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('file-perf').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  handleImport(file, 'status-perf', 'log-perf');
+  e.target.value = '';
+});
+document.getElementById('file-tempo').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  handleImport(file, 'status-tempo', 'log-tempo');
+  e.target.value = '';
+});
+</script>
+</body>
+</html>
