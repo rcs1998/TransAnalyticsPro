@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TransAnalytics Pro — Dashboard Logístico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-0: #060810; --bg-1: #0b0f1a; --bg-2: #111827; --bg-3: #1a2235; --bg-4: #1e2d47;
+  --accent: #00c8aa; --accent-dim: rgba(0,200,170,0.12); --accent-mid: rgba(0,200,170,0.35);
+  --blue: #4895ef; --blue-dim: rgba(72,149,239,0.12);
+  --amber: #f0a500; --amber-dim: rgba(240,165,0,0.12);
+  --coral: #ff6b6b; --coral-dim: rgba(255,107,107,0.12);
+  --purple: #9b7fe8; --purple-dim: rgba(155,127,232,0.12);
+  --green: #2ecc71; --green-dim: rgba(46,204,113,0.12);
+  --text-1: #e8edf5; --text-2: #9aa5b8; --text-3: #5a6478;
+  --border: rgba(255,255,255,0.06); --border-2: rgba(255,255,255,0.1);
+  --radius: 10px; --radius-lg: 14px;
+  --font-sans: 'DM Sans', sans-serif; --font-head: 'Syne', sans-serif; --font-mono: 'DM Mono', monospace;
+  --transition: 0.2s ease;
+}
+:root[data-theme="light"] {
+  --bg-0: #f3f5f9; --bg-1: #ffffff; --bg-2: #f3f5f9; --bg-3: #eef1f6; --bg-4: #e3e8f0;
+  --accent: #00a892; --accent-dim: rgba(0,168,146,0.10); --accent-mid: rgba(0,168,146,0.35);
+  --blue: #3a7bd5; --blue-dim: rgba(58,123,213,0.10);
+  --amber: #c98400; --amber-dim: rgba(201,132,0,0.10);
+  --coral: #e5484d; --coral-dim: rgba(229,72,77,0.10);
+  --purple: #7c5cd4; --purple-dim: rgba(124,92,212,0.10);
+  --green: #1f9d55; --green-dim: rgba(31,157,85,0.10);
+  --text-1: #1a2030; --text-2: #5a6478; --text-3: #8993a6;
+  --border: rgba(20,25,40,0.08); --border-2: rgba(20,25,40,0.14);
+}
+body, .header, .upload-card, .chart-card, .kpi-card, .table-card, .filters-bar, .btn, .filter-select, .filter-date, .multi-select-btn, .multi-select-content { transition: background var(--transition), color var(--transition), border-color var(--transition); }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font-sans); background: var(--bg-0); color: var(--text-1); min-height: 100vh; overflow-x: hidden; font-size: 14px; line-height: 1.6; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-1); }
+::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* HEADER */
+.header { background: var(--bg-1); border-bottom: 1px solid var(--border); padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); }
+.header-logo { display: flex; align-items: center; gap: 10px; font-family: var(--font-head); font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+.header-logo .logo-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #000; font-size: 16px; font-weight: 800; }
+.header-logo span em { color: var(--accent); font-style: normal; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.header-file-info { display: none; align-items: center; gap: 8px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px 4px 8px; font-size: 12px; color: var(--text-2); }
+.header-file-info.show { display: flex; }
+.header-file-info .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius); border: 1px solid var(--border-2); background: var(--bg-3); color: var(--text-1); cursor: pointer; font-size: 13px; font-weight: 500; transition: var(--transition); white-space: nowrap; }
+.btn:hover { background: var(--bg-4); border-color: var(--accent-mid); color: var(--accent); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+.btn-primary:hover { background: #00b099; color: #000; border-color: #00b099; }
+
+/* UPLOAD */
+#upload-screen { min-height: calc(100vh - 60px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; position: relative; overflow: hidden; }
+#upload-screen::before { content: ''; position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(0,200,170,0.04) 0%, transparent 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.upload-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 48px; max-width: 580px; width: 100%; text-align: center; position: relative; transition: var(--transition); }
+.upload-icon { width: 72px; height: 72px; background: var(--accent-dim); border: 1px solid var(--accent-mid); border-radius: 18px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; color: var(--accent); transition: var(--transition); }
+.upload-title { font-family: var(--font-head); font-size: 22px; font-weight: 700; margin-bottom: 8px; color: var(--text-1); }
+.upload-sub { color: var(--text-2); font-size: 14px; margin-bottom: 32px; line-height: 1.6; }
+.upload-dropzone { border: 2px dashed var(--border-2); border-radius: var(--radius); padding: 28px; margin-bottom: 20px; cursor: pointer; transition: var(--transition); position: relative; }
+.upload-dropzone:hover { border-color: var(--accent-mid); background: var(--accent-dim); }
+.upload-dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+/* DASHBOARD */
+#dashboard { display: none; }
+#dashboard.show { display: block; }
+.dash-main { padding: 24px; max-width: 1600px; margin: 0 auto; }
+
+/* FILTERS */
+.filters-bar { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 20px; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.filter-group { display: flex; align-items: center; gap: 6px; }
+.filter-label { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; }
+
+/* MULTI SELECT CUSTOM */
+.multi-select { position: relative; min-width: 180px; }
+.multi-select-btn { background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-1); padding: 7px 12px; font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; height: 34px; width: 100%; }
+.multi-select-content { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius); margin-top: 5px; max-height: 250px; overflow-y: auto; z-index: 50; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.multi-select-content.show { display: block; }
+.multi-select-item { padding: 8px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 12px; transition: var(--transition); }
+.multi-select-item:hover { background: var(--bg-3); }
+.multi-select-item input { accent-color: var(--accent); }
+.multi-select-item.hidden { display: none; }
+.multi-select-content-wide { min-width: 240px; }
+.multi-select-actions { padding: 8px 10px 6px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg-2); }
+.multi-select-actions input { width: 100%; background: var(--bg-3); border: 1px solid var(--border); border-radius: 6px; color: var(--text-1); padding: 5px 8px; font-size: 12px; margin-bottom: 6px; }
+.multi-select-actions-links { display: flex; gap: 6px; font-size: 11px; color: var(--text-3); }
+.multi-select-actions-links a { color: var(--accent); cursor: pointer; }
+.multi-select-actions-links a:hover { text-decoration: underline; }
+
+.filter-date { background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-1); padding: 6px 10px; font-size: 13px; height: 34px; color-scheme: dark; }
+.filter-select { min-width: 220px; background: var(--bg-3); color: var(--text-1); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 10px; height: 34px; transition: var(--transition); }
+.filter-select.active, .filter-date.active { border-color: var(--accent-mid); box-shadow: 0 0 0 1px var(--accent-dim); }
+.chart-clickable canvas { cursor: pointer; }
+.chart-card-hint { font-size: 10px; color: var(--text-3); margin-top: -8px; margin-bottom: 10px; }
+.active-chip { display: flex; align-items: center; gap: 10px; background: var(--accent-dim); border: 1px solid var(--accent-mid); border-radius: 20px; padding: 6px 8px 6px 14px; font-size: 12px; color: var(--text-1); margin: -10px 0 24px; width: fit-content; }
+.active-chip button { background: var(--bg-3); border: none; border-radius: 50%; width: 20px; height: 20px; color: var(--text-2); cursor: pointer; font-size: 11px; line-height: 1; }
+.active-chip button:hover { background: var(--coral-dim); color: var(--coral); }
+.idle-row-critical td:first-child { color: var(--coral); font-weight: 600; }
+
+/* KPI CARDS */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; position: relative; overflow: hidden; }
+.kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--kpi-color, var(--accent)); opacity: 0.6; }
+.kpi-label { font-size: 10px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.8px; }
+.kpi-value { font-family: var(--font-head); font-size: 22px; font-weight: 700; color: var(--text-1); line-height: 1.1; margin: 4px 0; }
+.kpi-sub { font-size: 10px; color: var(--text-3); }
+.kpi-sub strong { color: var(--kpi-color, var(--accent)); }
+
+/* CHARTS */
+.charts-grid-main { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+.charts-grid-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.chart-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; position: relative; }
+.chart-title { font-family: var(--font-head); font-size: 13px; font-weight: 600; color: var(--text-1); margin-bottom: 14px; }
+
+.chart-container-main { position: relative; height: 300px; width: 100%; }
+.chart-container-sub { position: relative; height: 220px; width: 100%; }
+
+/* TABLE */
+.table-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.table-header { padding: 14px 20px; background: var(--bg-2); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px; }
+th { background: var(--bg-2); padding: 12px 16px; text-align: left; color: var(--text-3); font-weight: 600; text-transform: uppercase; font-size: 10px; cursor: pointer; white-space: nowrap; }
+th:hover { color: var(--accent); }
+td { padding: 10px 16px; border-bottom: 1px solid var(--border); color: var(--text-2); }
+tr:hover td { background: var(--bg-3); color: var(--text-1); }
+
+.status-badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+.status-success { background: var(--green-dim); color: var(--green); }
+.status-error { background: var(--coral-dim); color: var(--coral); }
+.status-pending { background: var(--amber-dim); color: var(--amber); }
+
+#loading-screen { display: none; position: fixed; inset: 0; background: rgba(6,8,16,0.92); z-index: 500; align-items: center; justify-content: center; flex-direction: column; gap: 20px; backdrop-filter: blur(4px); }
+#loading-screen.show { display: flex; }
+.spinner { width: 44px; height: 44px; border: 3px solid var(--border-2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 1024px) {
+  .charts-grid-main, .charts-grid-sub { grid-template-columns: 1fr; }
+}
+
+/* PAGE TABS */
+.page-tabs { display: flex; gap: 6px; padding: 18px 24px 0; max-width: 1600px; margin: 0 auto; }
+.page-tab-btn { background: var(--bg-2); border: 1px solid var(--border); color: var(--text-2); padding: 10px 18px; border-radius: var(--radius) var(--radius) 0 0; font-size: 13px; font-weight: 600; font-family: var(--font-head); cursor: pointer; transition: var(--transition); border-bottom: none; }
+.page-tab-btn:hover { color: var(--text-1); background: var(--bg-3); }
+.page-tab-btn.active { color: var(--accent); background: var(--bg-0); border-color: var(--border); position: relative; top: 1px; }
+.page-section { display: none; }
+.page-section.active { display: block; }
+</style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <p id="loading-msg" style="color:var(--text-2); font-size:14px">Processando Inteligência Logística...</p>
+</div>
+
+<header class="header">
+  <div class="header-logo">
+    <div class="logo-icon">T</div>
+    <span>TransAnalytics <em>Pro</em></span>
+  </div>
+  <div class="header-right">
+    <div class="header-file-info" id="header-file-info">
+      <div class="dot"></div>
+      <span id="header-filename">arquivo.xlsx</span>
+    </div>
+    <button class="btn" id="theme-toggle" onclick="toggleTheme()">
+      <svg id="theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <span id="theme-label">Tema Claro</span>
+    </button>
+    <button class="btn" onclick="exportCurrent()">Exportar Excel</button>
+    <button class="btn btn-primary" id="btn-update-base" style="display:none" onclick="showUploadScreen()">Atualizar Base</button>
+    <button class="btn" id="btn-logout" style="display:none" onclick="logoutUser()">Sair</button>
+  </div>
+</header>
+
+<div id="login-screen" style="min-height: calc(100vh - 60px); display: flex; align-items: center; justify-content: center; padding: 40px 24px;">
+  <div class="upload-card">
+    <div class="upload-icon"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div>
+    <h2 class="upload-title">Acesso Restrito</h2>
+    <p class="upload-sub">Entre com o e-mail e senha cadastrados para acessar o dashboard.</p>
+    <div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:320px; margin:0 auto;">
+      <input type="email" id="login-email" placeholder="E-mail" style="background:var(--bg-3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text-1); font-size:13px;" />
+      <input type="password" id="login-password" placeholder="Senha" style="background:var(--bg-3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text-1); font-size:13px;" onkeydown="if(event.key==='Enter') loginUser()" />
+      <button class="btn btn-primary" onclick="loginUser()">Entrar</button>
+      <p id="login-error" style="color:var(--coral); font-size:12px; min-height:16px; text-align:center"></p>
+    </div>
+  </div>
+</div>
+
+<div id="firebase-toast" style="display:none; position:fixed; bottom:24px; right:24px; background:var(--bg-2); border:1px solid var(--border); color:var(--text-1); padding:12px 18px; border-radius:var(--radius); font-size:13px; z-index:600; box-shadow:0 8px 24px rgba(0,0,0,0.3);"></div>
+
+<div id="upload-screen" style="display:none">
+  <div class="upload-card">
+    <div class="upload-icon"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg></div>
+    <h2 class="upload-title">Torre de Controle Logística</h2>
+    <p class="upload-sub">Carregue o arquivo <strong>.xlsx</strong> com as 2 abas (Performance de Transportadoras e Tempo Total UOB) para uma análise completa.</p>
+    <div class="upload-dropzone">
+      <input type="file" id="file-input" accept=".xlsx, .xls" />
+      <p class="upload-dropzone-text">Clique ou arraste o arquivo aqui para processar</p>
+    </div>
+  </div>
+</div>
+
+<div id="dashboard">
+  <div class="page-tabs">
+    <button class="page-tab-btn active" id="tab-btn-performance" onclick="switchPage('performance')">📦 Performance Transportadoras</button>
+    <button class="page-tab-btn" id="tab-btn-tempo" onclick="switchPage('tempo')">⏱️ Tempo na Usina</button>
+  </div>
+  <div class="dash-main page-section active" id="page-performance">
+    <div class="filters-bar">
+      <div class="filter-group">
+        <span class="filter-label">Mês</span>
+        <div class="multi-select">
+          <button class="multi-select-btn" onclick="toggleFilter('month-options')">
+            <span id="month-label">Todos os meses</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="multi-select-content" id="month-options"></div>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">De</span>
+        <input type="date" id="filter-date-start" class="filter-date" onchange="applyFilters()" />
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Até</span>
+        <input type="date" id="filter-date-end" class="filter-date" onchange="applyFilters()" />
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">Material</span>
+        <div class="multi-select">
+          <button class="multi-select-btn" onclick="toggleFilter('material-options')">
+            <span id="material-label">Todos os materiais</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="multi-select-content multi-select-content-wide" id="material-options">
+            <div class="multi-select-actions">
+              <input type="text" id="material-search" placeholder="Buscar material..." oninput="filterMaterialOptions()" />
+              <div class="multi-select-actions-links">
+                <a onclick="selectAllMaterials()">Todos</a><span>·</span><a onclick="clearMaterialSelection()">Nenhum</a>
+              </div>
+            </div>
+            <div id="material-options-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">Transportadora</span>
+        <select id="filter-carrier" class="filter-select" onchange="applyFilters()">
+          <option value="">Todas as Transportadoras</option>
+        </select>
+      </div>
+
+      <button class="btn" onclick="clearFilters()" style="margin-left:auto">Limpar Filtros</button>
+    </div>
+
+    <div id="plate-chip" class="active-chip" style="display:none">
+      <span>Placa filtrada: <strong id="plate-chip-value"></strong></span>
+      <button onclick="clearPlateFilter()">✕</button>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card" style="--kpi-color: var(--accent)">
+        <div class="kpi-label">Volume Total</div>
+        <div class="kpi-value" id="kpi-weight">0 <small style="font-size:12px">t</small></div>
+        <div class="kpi-sub" id="kpi-records">0 registros</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: var(--blue)">
+        <div class="kpi-label">Total Motoristas</div>
+        <div class="kpi-value" id="kpi-drivers">0</div>
+        <div class="kpi-sub">CPFs únicos</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: var(--purple)">
+        <div class="kpi-label">Veículos</div>
+        <div class="kpi-value" id="kpi-vehicles">0</div>
+        <div class="kpi-sub">Placas únicas</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: var(--coral)">
+        <div class="kpi-label">Divergências</div>
+        <div class="kpi-value" id="kpi-div">0</div>
+        <div class="kpi-sub">Pesagens críticas</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: var(--amber)">
+        <div class="kpi-label">Eficiência</div>
+        <div class="kpi-value" id="kpi-avg">0 <small style="font-size:12px">t</small></div>
+        <div class="kpi-sub">Média por viagem</div>
+      </div>
+    </div>
+
+    <div class="charts-grid-main">
+      <div class="chart-card chart-clickable">
+        <div class="chart-title">Ranking de Motoristas por Transportadora (CPFs Únicos)</div>
+        <div class="chart-card-hint">Clique em uma barra para filtrar a transportadora</div>
+        <div class="chart-container-main">
+          <canvas id="chart-drivers-rank"></canvas>
+        </div>
+      </div>
+      <div class="chart-card chart-clickable">
+        <div class="chart-title">Distribuição por Material</div>
+        <div class="chart-card-hint">Clique em uma fatia para filtrar o material</div>
+        <div class="chart-container-main">
+          <canvas id="chart-materials"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-grid-sub">
+      <div class="chart-card chart-clickable" style="--kpi-color: var(--coral)">
+        <div class="chart-title">Divergências por Transportadora</div>
+        <div class="chart-card-hint">Clique em uma barra para filtrar a transportadora</div>
+        <div class="chart-container-sub">
+          <canvas id="chart-div"></canvas>
+        </div>
+      </div>
+      <div class="chart-card chart-clickable">
+        <div class="chart-title">Ranking de Placas (Viagens)</div>
+        <div class="chart-card-hint">Clique em uma barra para ver o histórico da placa</div>
+        <div class="chart-container-sub">
+          <canvas id="chart-plates"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-grid-main">
+      <div class="chart-card" style="grid-column: 1 / -1;">
+        <div class="chart-title" id="chart-daily-title">Viagens por Dia</div>
+        <div class="chart-container-sub">
+          <canvas id="chart-daily"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-card" style="margin-bottom:24px;">
+      <div class="table-header">
+        <h3 style="font-family:var(--font-head); font-size:14px">Placas Ociosas</h3>
+        <span style="font-size:11px; color:var(--text-3)">Sem viagens há mais de <input type="number" id="idle-threshold" value="7" min="1" style="width:36px; background:var(--bg-3); border:1px solid var(--border); border-radius:4px; color:var(--text-1); padding:2px 4px; text-align:center;" onchange="applyFilters()"> dias (referência: última data com viagem no período filtrado)</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Placa</th>
+              <th>Transportadora</th>
+              <th>Última Viagem</th>
+              <th>Dias sem Viagem</th>
+              <th>Total Viagens</th>
+            </tr>
+          </thead>
+          <tbody id="idle-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header">
+        <h3 style="font-family:var(--font-head); font-size:14px">Performance Detalhada</h3>
+        <input type="text" id="table-search" placeholder="Pesquisar transportadora..." style="width:280px; background:var(--bg-3); color:var(--text-1); border:1px solid var(--border); border-radius:var(--radius); padding:6px 12px;" oninput="applyFilters()" />
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortTable('name')">Transportadora</th>
+              <th onclick="sortTable('records')">Viagens</th>
+              <th onclick="sortTable('weight')">Peso Total (t)</th>
+              <th onclick="sortTable('avg')">Média (t)</th>
+              <th onclick="sortTable('drivers')">Motoristas (CPF)</th>
+              <th onclick="sortTable('vehicles')">Veículos</th>
+              <th onclick="sortTable('div')">Div.</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-main page-section" id="page-tempo">
+    <div class="filters-bar">
+      <div class="filter-group">
+        <span class="filter-label">Mês</span>
+        <div class="multi-select">
+          <button class="multi-select-btn" onclick="toggleFilter('month-options-tempo')">
+            <span id="month-label-tempo">Todos os meses</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="multi-select-content" id="month-options-tempo"></div>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">De</span>
+        <input type="date" id="filter-date-start-tempo" class="filter-date" onchange="applyFiltersTempo()" />
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Até</span>
+        <input type="date" id="filter-date-end-tempo" class="filter-date" onchange="applyFiltersTempo()" />
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">Material</span>
+        <div class="multi-select">
+          <button class="multi-select-btn" onclick="toggleFilter('material-options-tempo')">
+            <span id="material-label-tempo">Todos os materiais</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="multi-select-content multi-select-content-wide" id="material-options-tempo">
+            <div class="multi-select-actions">
+              <input type="text" id="material-search-tempo" placeholder="Buscar material..." oninput="filterMaterialOptionsTempo()" />
+              <div class="multi-select-actions-links">
+                <a onclick="selectAllMaterialsTempo()">Todos</a><span>·</span><a onclick="clearMaterialSelectionTempo()">Nenhum</a>
+              </div>
+            </div>
+            <div id="material-options-list-tempo"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">Transportadora</span>
+        <select id="filter-carrier-tempo" class="filter-select" onchange="applyFiltersTempo()">
+          <option value="">Todas as Transportadoras</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">Tipo Doc</span>
+        <select id="filter-tipodoc-tempo" class="filter-select" style="min-width:110px" onchange="applyFiltersTempo()">
+          <option value="">Todos</option>
+          <option value="NF">NF</option>
+          <option value="TK">TK</option>
+        </select>
+      </div>
+
+      <button class="btn" onclick="clearFiltersTempo()" style="margin-left:auto">Limpar Filtros</button>
+    </div>
+
+    <div id="plate-chip-tempo" class="active-chip" style="display:none">
+      <span>Placa filtrada: <strong id="plate-chip-value-tempo"></strong></span>
+      <button onclick="clearPlateFilterTempo()">✕</button>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card" style="--kpi-color: var(--accent)">
+        <div class="kpi-label">Tempo Médio na Usina</div>
+        <div class="kpi-value" id="kpi-tempo-medio">--:--</div>
+        <div class="kpi-sub" id="kpi-tempo-registros">0 registros</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: var(--blue)">
+        <div class="kpi-label">Tempo Médio Entre Pesos</div>
+        <div class="kpi-value" id="kpi-tempo-entrepesos">--:--</div>
+        <div class="kpi-sub">tempo de pesagem (tara → bruto)</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: var(--purple)">
+        <div class="kpi-label">Veículos</div>
+        <div class="kpi-value" id="kpi-tempo-vehicles">0</div>
+        <div class="kpi-sub">placas únicas</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: var(--green)">
+        <div class="kpi-label">Transportadoras</div>
+        <div class="kpi-value" id="kpi-tempo-carriers">0</div>
+        <div class="kpi-sub">identificadas via cruzamento de placa</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: var(--coral)">
+        <div class="kpi-label">Viagens Críticas</div>
+        <div class="kpi-value" id="kpi-tempo-criticas">0</div>
+        <div class="kpi-sub" id="kpi-tempo-criticas-sub">acima de 2.0h</div>
+      </div>
+    </div>
+
+    <div class="charts-grid-main">
+      <div class="chart-card chart-clickable">
+        <div class="chart-title">Ranking de Transportadoras por Tempo Médio na Usina</div>
+        <div class="chart-card-hint">Clique em uma barra para filtrar a transportadora</div>
+        <div class="chart-container-main">
+          <canvas id="chart-tempo-carriers"></canvas>
+        </div>
+      </div>
+      <div class="chart-card chart-clickable">
+        <div class="chart-title">Distribuição por Material</div>
+        <div class="chart-card-hint">Clique em uma fatia para filtrar o material</div>
+        <div class="chart-container-main">
+          <canvas id="chart-tempo-materials"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-grid-sub">
+      <div class="chart-card chart-clickable">
+        <div class="chart-title">Ranking de Placas por Tempo Médio na Usina</div>
+        <div class="chart-card-hint">Clique em uma barra para ver o histórico da placa</div>
+        <div class="chart-container-sub">
+          <canvas id="chart-tempo-plates"></canvas>
+        </div>
+      </div>
+      <div class="chart-card" style="--kpi-color: var(--amber)">
+        <div class="chart-title">Distribuição de Tempos na Usina</div>
+        <div class="chart-container-sub">
+          <canvas id="chart-tempo-distribution"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-grid-main">
+      <div class="chart-card" style="grid-column: 1 / -1;">
+        <div class="chart-title" id="chart-tempo-daily-title">Tempo Médio na Usina por Dia</div>
+        <div class="chart-container-sub">
+          <canvas id="chart-tempo-daily"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-card" style="margin-bottom:24px;">
+      <div class="table-header">
+        <h3 style="font-family:var(--font-head); font-size:14px">Piores Tempos na Usina</h3>
+        <span style="font-size:11px; color:var(--text-3)">Tempo limite: <input type="number" id="tempo-threshold" value="2" min="0.5" step="0.5" style="width:42px; background:var(--bg-3); border:1px solid var(--border); border-radius:4px; color:var(--text-1); padding:2px 4px; text-align:center;" onchange="applyFiltersTempo()"> horas</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Placa</th>
+              <th>Transportadora</th>
+              <th>Material</th>
+              <th>Entrada</th>
+              <th>Saída</th>
+              <th>Tempo na Usina</th>
+              <th>Tempo Entre Pesos</th>
+            </tr>
+          </thead>
+          <tbody id="worst-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header">
+        <h3 style="font-family:var(--font-head); font-size:14px">Performance Detalhada por Transportadora</h3>
+        <input type="text" id="table-search-tempo" placeholder="Pesquisar transportadora..." style="width:280px; background:var(--bg-3); color:var(--text-1); border:1px solid var(--border); border-radius:var(--radius); padding:6px 12px;" oninput="applyFiltersTempo()" />
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortTableTempo('name')">Transportadora</th>
+              <th onclick="sortTableTempo('count')">Viagens</th>
+              <th onclick="sortTableTempo('avg')">Tempo Médio</th>
+              <th onclick="sortTableTempo('min')">Tempo Mín.</th>
+              <th onclick="sortTableTempo('max')">Tempo Máx.</th>
+              <th onclick="sortTableTempo('vehicles')">Veículos</th>
+            </tr>
+          </thead>
+          <tbody id="table-body-tempo"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCauvny8DdHEuHNJtJaaXKSnvWHHzUUBaw",
+  authDomain: "transanalyticspro.firebaseapp.com",
+  projectId: "transanalyticspro",
+  storageBucket: "transanalyticspro.firebasestorage.app",
+  messagingSenderId: "696652164052",
+  appId: "1:696652164052:web:93b9c9e3e049f3fbb20441"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+function showToast(msg, ms = 3500) {
+  const el = document.getElementById('firebase-toast');
+  el.innerText = msg;
+  el.style.display = 'block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { el.style.display = 'none'; }, ms);
+}
+
+function loginUser() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.innerText = '';
+  if (!email || !password) { errEl.innerText = 'Informe e-mail e senha.'; return; }
+  auth.signInWithEmailAndPassword(email, password).catch(err => {
+    errEl.innerText = 'E-mail ou senha inválidos.';
+  });
+}
+
+function logoutUser() {
+  auth.signOut();
+}
+
+function showUploadScreen() {
+  document.getElementById('upload-screen').style.display = 'flex';
+  document.getElementById('dashboard').classList.remove('show');
+}
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('btn-update-base').style.display = 'inline-flex';
+    document.getElementById('btn-logout').style.display = 'inline-flex';
+    loadFromFirestore();
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('upload-screen').style.display = 'none';
+    document.getElementById('dashboard').classList.remove('show');
+    document.getElementById('btn-update-base').style.display = 'none';
+    document.getElementById('btn-logout').style.display = 'none';
+  }
+});
+
+function simpleHash(str) {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return 'h' + Math.abs(hash).toString(36);
+}
+
+function sanitizeDocId(s) {
+  const clean = String(s).replace(/[\/\.#\$\[\]\s]/g, '_').trim();
+  return clean || simpleHash(String(Math.random()));
+}
+
+async function saveEntriesToFirestore(collectionName, entries) {
+  if (!entries.length) return;
+  const colRef = db.collection(collectionName);
+  const chunkSize = 400;
+  let saved = 0;
+  try {
+    for (let i = 0; i < entries.length; i += chunkSize) {
+      const batch = db.batch();
+      entries.slice(i, i + chunkSize).forEach(e => {
+        const { id, ...data } = e;
+        batch.set(colRef.doc(id), data);
+      });
+      await batch.commit();
+      saved += Math.min(chunkSize, entries.length - i);
+    }
+    showToast(`✅ ${saved} registros sincronizados com o Firebase (${collectionName === 'tempo_usina_entries' ? 'Tempo na Usina' : 'Performance'}).`);
+  } catch (err) {
+    showToast('⚠️ Erro ao salvar no Firebase: ' + err.message, 6000);
+  }
+}
+
+async function loadFromFirestore() {
+  document.getElementById('loading-screen').classList.add('show');
+  try {
+    const [perfSnap, tempoSnap] = await Promise.all([
+      db.collection('performance_entries').get(),
+      db.collection('tempo_usina_entries').get()
+    ]);
+
+    if (!perfSnap.empty) {
+      const carrierMap = new Map();
+      const monthSet = new Set(); const materialSet = new Set();
+      perfSnap.forEach(doc => {
+        const e = doc.data();
+        materialSet.add(e.material);
+        if (e.monthKey && e.monthKey !== 'Sem Data') monthSet.add(e.monthKey);
+        if (!carrierMap.has(e.carrierName)) carrierMap.set(e.carrierName, { name: e.carrierName, allEntries: [] });
+        carrierMap.get(e.carrierName).allEntries.push({ cpf: e.cpf, placa: e.placa, weight: e.weight, material: e.material, isDiv: e.isDiv, monthKey: e.monthKey, dateTs: e.dateTs });
+      });
+      state.carriers = carrierMap;
+      state.months = Array.from(monthSet).sort();
+      state.materials = Array.from(materialSet).sort();
+    }
+
+    if (!tempoSnap.empty) {
+      const entries = []; const monthSet2 = new Set(); const materialSet2 = new Set();
+      tempoSnap.forEach(doc => {
+        const e = doc.data();
+        entries.push(e);
+        materialSet2.add(e.material);
+        if (e.monthKey && e.monthKey !== 'Sem Data') monthSet2.add(e.monthKey);
+      });
+      stateTempo.allEntries = entries;
+      stateTempo.months = Array.from(monthSet2).sort();
+      stateTempo.materials = Array.from(materialSet2).sort();
+    }
+
+    buildPlateCarrierMap();
+    populateFilters();
+    applyFilters();
+    populateFiltersTempo();
+    applyFiltersTempo();
+
+    if (!perfSnap.empty || !tempoSnap.empty) {
+      document.getElementById('upload-screen').style.display = 'none';
+      document.getElementById('dashboard').classList.add('show');
+      document.getElementById('header-file-info').classList.add('show');
+      document.getElementById('header-filename').innerText = 'Base sincronizada (Firebase)';
+    } else {
+      document.getElementById('upload-screen').style.display = 'flex';
+      document.getElementById('dashboard').classList.remove('show');
+    }
+  } catch (err) {
+    showToast('⚠️ Erro ao carregar base do Firebase: ' + err.message, 6000);
+    document.getElementById('upload-screen').style.display = 'flex';
+  }
+  document.getElementById('loading-screen').classList.remove('show');
+}
+
+let state = {
+  carriers: new Map(),
+  months: [],
+  materials: [],
+  selectedMonths: new Set(),
+  selectedMaterials: new Set(),
+  selectedPlate: null,
+  sortCol: 'weight',
+  sortDir: 'desc',
+  currentData: []
+};
+let charts = {};
+
+let stateTempo = {
+  allEntries: [],
+  plateCarrierMap: new Map(),
+  months: [],
+  materials: [],
+  selectedMonths: new Set(),
+  selectedMaterials: new Set(),
+  selectedPlate: null,
+  sortCol: 'avg',
+  sortDir: 'desc',
+  currentData: []
+};
+let chartsTempo = {};
+let currentPage = 'performance';
+
+function switchPage(name) {
+  currentPage = name;
+  document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.page-tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-btn-' + name).classList.add('active');
+}
+
+function exportCurrent() { if (currentPage === 'tempo') exportExcelTempo(); else exportExcel(); }
+
+const COLORS = ['#00c8aa','#4895ef','#f0a500','#ff6b6b','#9b7fe8','#2ecc71','#f368e0','#48dbfb','#ff9f43','#a29bfe'];
+function getStableColors(labels, fullList) {
+  // Atribui a cada label uma cor fixa com base na posição dele na lista completa
+  // de materiais, para que a cor não mude quando o gráfico é filtrado.
+  return labels.map(l => {
+    const idx = fullList.indexOf(l);
+    return COLORS[(idx === -1 ? 0 : idx) % COLORS.length];
+  });
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  const next = isLight ? 'dark' : 'light';
+  html.setAttribute('data-theme', next);
+  document.getElementById('theme-label').innerText = next === 'light' ? 'Tema Escuro' : 'Tema Claro';
+  try { localStorage.setItem('transanalytics-theme', next); } catch(e) {}
+  updateChartThemeColors();
+  if (state.currentData && state.currentData.length) applyFilters();
+  if (stateTempo.currentData && stateTempo.currentData.length) applyFiltersTempo();
+}
+
+function updateChartThemeColors() {
+  const light = document.documentElement.getAttribute('data-theme') === 'light';
+  Chart.defaults.color = light ? '#5a6478' : '#9aa5b8';
+  Chart.defaults.borderColor = light ? '#e3e8f0' : '#1a2235';
+}
+
+(function initTheme() {
+  let saved = 'dark';
+  try { saved = localStorage.getItem('transanalytics-theme') || 'dark'; } catch(e) {}
+  document.documentElement.setAttribute('data-theme', saved);
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('theme-label').innerText = saved === 'light' ? 'Tema Escuro' : 'Tema Claro';
+    updateChartThemeColors();
+  });
+})();
+
+function toggleFilter(id) {
+  const el = document.getElementById(id);
+  const isVisible = el.classList.contains('show');
+  document.querySelectorAll('.multi-select-content').forEach(c => c.classList.remove('show'));
+  if (!isVisible) el.classList.add('show');
+}
+
+window.onclick = e => { if (!e.target.closest('.multi-select')) document.querySelectorAll('.multi-select-content').forEach(c => c.classList.remove('show')); };
+
+document.getElementById('file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('loading-screen').classList.add('show');
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array', cellDates: true });
+      let perfFlat = [], tempoFlat = [];
+      let foundPerf = false, foundTempo = false;
+
+      wb.SheetNames.forEach(sheetName => {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1 });
+        if (!rows || rows.length < 2 || !rows[0]) return;
+        const headers = rows[0];
+        const tempoCols = detectColumnsTempo(headers);
+        const perfCols = detectColumns(headers);
+        if (tempoCols.placa !== -1 && (tempoCols.tempoUsina !== -1 || tempoCols.tempoEntrePesos !== -1)) {
+          tempoFlat = buildTempoFlatEntries(rows);
+          foundTempo = true;
+        } else if (perfCols.carrier !== -1) {
+          perfFlat = buildPerfFlatEntries(rows);
+          foundPerf = true;
+        }
+      });
+
+      if (!foundPerf && !foundTempo) {
+        alert("Não foi possível identificar as abas de dados no arquivo.");
+        document.getElementById('loading-screen').classList.remove('show');
+        return;
+      }
+
+      await Promise.all([
+        saveEntriesToFirestore('performance_entries', perfFlat),
+        saveEntriesToFirestore('tempo_usina_entries', tempoFlat)
+      ]);
+      document.getElementById('file-input').value = '';
+      await loadFromFirestore();
+    } catch (err) {
+      alert("Erro ao processar o arquivo: " + err.message);
+      document.getElementById('loading-screen').classList.remove('show');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+
+function detectColumns(headers) {
+  const findCol = (keys) => headers.findIndex(h => keys.some(k => norm(h).includes(k)));
+  return {
+    carrier: findCol(['transportadora', 'empresa', 'carrier', 'nome']),
+    driver: findCol(['motorista', 'cpf', 'driver']),
+    vehicle: findCol(['placa', 'veiculo', 'frota', 'identificador']),
+    weight: findCol(['peso liquido', 'peso liq', 'tonelagem']),
+    material: findCol(['material', 'produto', 'mercadoria']),
+    date: findCol(['data registro', 'mes/ano', 'data', 'date', 'entrada']),
+    divApurada: findCol(['divergencia de peso apurada', 'peso apurado', 'dif peso']),
+    divDefinida: findCol(['divergencia de peso definida', 'limite de tolerancia', 'limite peso'])
+  };
+}
+
+function extractCPF(val) {
+  const s = String(val || '').trim();
+  const match = s.match(/CPF:\s*([0-9.\-]+)/i);
+  if (match) return match[1].replace(/\D/g, '');
+  const numbers = s.replace(/\D/g, '');
+  if (numbers.length === 11) return numbers;
+  return s;
+}
+
+// Extrair o limite mínimo (o mais negativo) do intervalo
+function getMinLimit(limitStr) {
+    if (!limitStr) return null;
+    const s = String(limitStr).replace(',', '.');
+    const matches = s.match(/(-?\d+\.?\d*)/g);
+    if (matches && matches.length > 0) {
+        return Math.min(...matches.map(Number));
+    }
+    return null;
+}
+
+function buildPerfFlatEntries(rows) {
+  const headers = rows[0];
+  const cols = detectColumns(headers);
+  if (cols.carrier === -1) return [];
+
+  const flatEntries = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length === 0 || !row[cols.carrier]) continue;
+
+    const carrierName = String(row[cols.carrier]).split('[')[0].trim();
+    const cpf = cols.driver !== -1 ? extractCPF(row[cols.driver]) : '';
+    const placa = cols.vehicle !== -1 ? String(row[cols.vehicle] || '').trim().toUpperCase() : '';
+    
+    let weight = cols.weight !== -1 ? (parseFloat(row[cols.weight]) || 0) : 0;
+    weight = Math.abs(weight); 
+    
+    let material = 'DIVERSOS';
+    if (cols.material !== -1) {
+        const matRaw = String(row[cols.material] || 'DIVERSOS');
+        material = matRaw.split('[')[0].trim().toUpperCase();
+    }
+    
+    // Lógica Exata de Divergência para bater com os 204 registros
+    let isDiv = false;
+    if (cols.divApurada !== -1 && cols.divDefinida !== -1) {
+        const apurada = parseFloat(row[cols.divApurada]);
+        const minLimit = getMinLimit(row[cols.divDefinida]);
+        
+        // Se a divergência apurada for MENOR que o limite mínimo definido (ex: -6.0 < -5.0)
+        if (!isNaN(apurada) && minLimit !== null && apurada < minLimit) {
+            isDiv = true;
+        }
+    }
+
+    let monthKey = 'Sem Data';
+    let dateTs = null;
+    if (cols.date !== -1) {
+      let date = row[cols.date];
+      if (!(date instanceof Date)) date = new Date(date);
+      if (!isNaN(date)) {
+        monthKey = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+        dateTs = date.getTime();
+      }
+    }
+
+    const entryId = sanitizeDocId([carrierName, placa, material, weight, monthKey, dateTs].join('|'));
+    flatEntries.push({ id: entryId, carrierName, cpf, placa, weight, material, isDiv, monthKey, dateTs });
+  }
+
+  return flatEntries;
+}
+
+function buildPlateCarrierMap() {
+  const freq = new Map(); // placa -> Map(carrierName -> count)
+  state.carriers.forEach(c => {
+    c.allEntries.forEach(e => {
+      if (!e.placa || e.placa.length < 3) return;
+      if (!freq.has(e.placa)) freq.set(e.placa, new Map());
+      const m = freq.get(e.placa);
+      m.set(c.name, (m.get(c.name) || 0) + 1);
+    });
+  });
+  const map = new Map();
+  freq.forEach((m, placa) => {
+    let best = null, bestCount = -1;
+    m.forEach((count, name) => { if (count > bestCount) { best = name; bestCount = count; } });
+    map.set(placa, best);
+  });
+  stateTempo.plateCarrierMap = map;
+}
+
+function populateFilters() {
+  const monthOptions = document.getElementById('month-options');
+  monthOptions.innerHTML = '';
+  state.months.forEach(m => {
+    const parts = m.split('-');
+    const label = `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(parts[1])-1]}/${parts[0]}`;
+    const div = document.createElement('div');
+    div.className = 'multi-select-item';
+    div.innerHTML = `<input type="checkbox" value="${m}"> <span>${label}</span>`;
+    div.onclick = e => {
+      const cb = div.querySelector('input');
+      if (e.target !== cb) cb.checked = !cb.checked;
+      if (cb.checked) state.selectedMonths.add(cb.value); else state.selectedMonths.delete(cb.value);
+      document.getElementById('month-label').innerText = state.selectedMonths.size === 0 ? 'Todos os meses' : `${state.selectedMonths.size} selecionados`;
+      applyFilters();
+    };
+    monthOptions.appendChild(div);
+  });
+
+  // Materiais ordenados pelo peso total (mais relevantes primeiro)
+  const materialWeights = {};
+  state.carriers.forEach(c => c.allEntries.forEach(e => { materialWeights[e.material] = (materialWeights[e.material] || 0) + e.weight; }));
+  const sortedMaterials = [...state.materials].sort((a, b) => (materialWeights[b] || 0) - (materialWeights[a] || 0));
+
+  const matList = document.getElementById('material-options-list');
+  matList.innerHTML = '';
+  sortedMaterials.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'multi-select-item';
+    div.dataset.material = m.toLowerCase();
+    div.innerHTML = `<input type="checkbox" value="${m}"> <span>${m}</span>`;
+    div.onclick = e => {
+      const cb = div.querySelector('input');
+      if (e.target !== cb) cb.checked = !cb.checked;
+      if (cb.checked) state.selectedMaterials.add(cb.value); else state.selectedMaterials.delete(cb.value);
+      updateMaterialLabel();
+      applyFilters();
+    };
+    matList.appendChild(div);
+  });
+
+  const sel = document.getElementById('filter-carrier');
+  sel.innerHTML = '<option value="">Todas as Transportadoras</option>';
+  Array.from(state.carriers.keys()).sort().forEach(n => {
+    const opt = document.createElement('option'); opt.value = n; opt.textContent = n; sel.appendChild(opt);
+  });
+}
+
+function updateMaterialLabel() {
+  document.getElementById('material-label').innerText = state.selectedMaterials.size === 0 ? 'Todos os materiais' : `${state.selectedMaterials.size} selecionados`;
+}
+
+function filterMaterialOptions() {
+  const q = document.getElementById('material-search').value.toLowerCase();
+  document.querySelectorAll('#material-options-list .multi-select-item').forEach(item => {
+    item.classList.toggle('hidden', !item.dataset.material.includes(q));
+  });
+}
+
+function selectAllMaterials() {
+  document.querySelectorAll('#material-options-list .multi-select-item:not(.hidden) input').forEach(cb => {
+    cb.checked = true;
+    state.selectedMaterials.add(cb.value);
+  });
+  updateMaterialLabel();
+  applyFilters();
+}
+
+function clearMaterialSelection() {
+  document.querySelectorAll('#material-options-list input').forEach(cb => cb.checked = false);
+  state.selectedMaterials.clear();
+  updateMaterialLabel();
+  applyFilters();
+}
+
+function setCarrierFilter(name) {
+  const sel = document.getElementById('filter-carrier');
+  sel.value = (sel.value === name) ? '' : name;
+  applyFilters();
+}
+
+function toggleMaterialFilter(name) {
+  if (state.selectedMaterials.has(name)) {
+    state.selectedMaterials.delete(name);
+  } else {
+    state.selectedMaterials.add(name);
+  }
+  document.querySelectorAll('#material-options-list .multi-select-item input').forEach(cb => {
+    cb.checked = state.selectedMaterials.has(cb.value);
+  });
+  updateMaterialLabel();
+  applyFilters();
+}
+
+function applyFilters() {
+  const carrierFilter = document.getElementById('filter-carrier').value;
+  const search = document.getElementById('table-search').value.toLowerCase();
+  const dateStartVal = document.getElementById('filter-date-start').value;
+  const dateEndVal = document.getElementById('filter-date-end').value;
+  const dateStart = dateStartVal ? new Date(dateStartVal + 'T00:00:00').getTime() : null;
+  const dateEnd = dateEndVal ? new Date(dateEndVal + 'T23:59:59').getTime() : null;
+  const idleThreshold = parseInt(document.getElementById('idle-threshold').value) || 7;
+
+  document.getElementById('filter-carrier').classList.toggle('active', !!carrierFilter);
+  document.getElementById('filter-date-start').classList.toggle('active', !!dateStartVal);
+  document.getElementById('filter-date-end').classList.toggle('active', !!dateEndVal);
+
+  let filtered = [], totals = { weight: 0, records: 0, div: 0, drivers: new Set(), vehicles: new Set(), materials: {}, plates: {} };
+  let plateStats = new Map(); // placa -> { carrier, count, firstTs, lastTs }
+  let dailyMap = {}; // 'YYYY-MM-DD' -> count
+
+  state.carriers.forEach(c => {
+    if (carrierFilter && c.name !== carrierFilter) return;
+    
+    let cf = { name: c.name, records: 0, weight: 0, drivers: new Set(), vehicles: new Set(), div: 0 };
+    
+    c.allEntries.forEach(e => {
+      if (state.selectedMonths.size > 0 && !state.selectedMonths.has(e.monthKey)) return;
+      if (state.selectedMaterials.size > 0 && !state.selectedMaterials.has(e.material)) return;
+      if (dateStart !== null && (e.dateTs === null || e.dateTs < dateStart)) return;
+      if (dateEnd !== null && (e.dateTs === null || e.dateTs > dateEnd)) return;
+
+      // Estatísticas de placa (ociosidade) — independem do filtro de placa selecionada
+      if (e.placa.length >= 3) {
+        if (!plateStats.has(e.placa)) plateStats.set(e.placa, { carrier: c.name, count: 0, firstTs: e.dateTs, lastTs: e.dateTs });
+        const ps = plateStats.get(e.placa);
+        ps.count++;
+        if (e.dateTs !== null) {
+          if (ps.lastTs === null || e.dateTs > ps.lastTs) ps.lastTs = e.dateTs;
+          if (ps.firstTs === null || e.dateTs < ps.firstTs) ps.firstTs = e.dateTs;
+        }
+      }
+
+      // A partir daqui, respeita também o filtro de placa selecionada (clique no ranking)
+      if (state.selectedPlate && e.placa !== state.selectedPlate) return;
+      
+      cf.records++;
+      cf.weight += e.weight;
+      if (e.isDiv) cf.div++;
+      if (e.cpf.length >= 3) { cf.drivers.add(e.cpf); totals.drivers.add(e.cpf); }
+      if (e.placa.length >= 3) { 
+        cf.vehicles.add(e.placa); 
+        totals.vehicles.add(e.placa); 
+        totals.plates[e.placa] = (totals.plates[e.placa] || 0) + 1;
+      }
+      if (e.dateTs !== null) {
+        const d = new Date(e.dateTs);
+        const dayKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        dailyMap[dayKey] = (dailyMap[dayKey] || 0) + 1;
+      }
+      
+      totals.materials[e.material] = (totals.materials[e.material] || 0) + e.weight;
+    });
+
+    if (cf.records > 0) {
+      if (!search || c.name.toLowerCase().includes(search)) filtered.push(cf);
+      totals.weight += cf.weight; totals.records += cf.records; totals.div += cf.div;
+    }
+  });
+
+  state.currentData = filtered;
+  updateUI(filtered, totals, dailyMap);
+  renderIdleTable(plateStats, idleThreshold);
+
+  document.getElementById('plate-chip').style.display = state.selectedPlate ? 'flex' : 'none';
+  if (state.selectedPlate) document.getElementById('plate-chip-value').innerText = state.selectedPlate;
+  document.getElementById('chart-daily-title').innerText = state.selectedPlate ? `Viagens por Dia — Placa ${state.selectedPlate}` : 'Viagens por Dia';
+}
+
+function setPlateFilter(placa) {
+  state.selectedPlate = (state.selectedPlate === placa) ? null : placa;
+  applyFilters();
+}
+
+function clearPlateFilter() {
+  state.selectedPlate = null;
+  applyFilters();
+}
+
+function renderIdleTable(plateStats, threshold) {
+  const tbody = document.getElementById('idle-table-body');
+  tbody.innerHTML = '';
+
+  const entries = Array.from(plateStats.entries()).filter(([,s]) => s.lastTs !== null);
+  if (entries.length === 0) return;
+
+  const referenceTs = Math.max(...entries.map(([,s]) => s.lastTs));
+  const MS_DAY = 86400000;
+
+  const idle = entries
+    .map(([placa, s]) => ({ placa, ...s, daysIdle: Math.floor((referenceTs - s.lastTs) / MS_DAY) }))
+    .filter(p => p.daysIdle >= threshold)
+    .sort((a,b) => b.daysIdle - a.daysIdle)
+    .slice(0, 25);
+
+  if (idle.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-3)">Nenhuma placa ociosa encontrada no período filtrado.</td></tr>';
+    return;
+  }
+
+  idle.forEach(p => {
+    const tr = document.createElement('tr');
+    if (p.daysIdle >= threshold * 2) tr.classList.add('idle-row-critical');
+    tr.style.cursor = 'pointer';
+    tr.title = 'Clique para ver o histórico desta placa';
+    const lastDate = new Date(p.lastTs).toLocaleDateString('pt-BR');
+    tr.innerHTML = `<td>${p.placa}</td><td>${p.carrier}</td><td>${lastDate}</td><td>${p.daysIdle} dias</td><td>${p.count}</td>`;
+    tr.onclick = () => setPlateFilter(p.placa);
+    tbody.appendChild(tr);
+  });
+}
+
+function updateUI(data, totals, dailyMap) {
+  document.getElementById('kpi-weight').innerHTML = `${totals.weight.toLocaleString('pt-BR', {maximumFractionDigits:1})} <small style="font-size:12px">t</small>`;
+  document.getElementById('kpi-records').innerText = `${totals.records} registros`;
+  document.getElementById('kpi-drivers').innerText = totals.drivers.size;
+  document.getElementById('kpi-vehicles').innerText = totals.vehicles.size;
+  document.getElementById('kpi-div').innerText = totals.div;
+  document.getElementById('kpi-avg').innerHTML = totals.records > 0 ? `${(totals.weight/totals.records).toLocaleString('pt-BR', {maximumFractionDigits:1})} <small style="font-size:12px">t</small>` : '0';
+
+  renderCharts(data, totals, dailyMap);
+  renderTable(data);
+}
+
+function renderCharts(data, totals, dailyMap) {
+  const commonOptions = { responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9aa5b8', font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: '#9aa5b8', font: { size: 10 } }, grid: { color: '#1a2235' }, beginAtZero: true } } };
+  
+  // 1. Ranking de Motoristas por Transportadora (CPFs Únicos) — clicável
+  const topDrivers = [...data].sort((a,b) => b.drivers.size - a.drivers.size).slice(0, 10);
+  if(charts.drivers) charts.drivers.destroy();
+  charts.drivers = new Chart(document.getElementById('chart-drivers-rank'), { type: 'bar', data: { labels: topDrivers.map(c => c.name.substring(0,15)), datasets: [{ label: 'Motoristas', data: topDrivers.map(c => c.drivers.size), backgroundColor: '#4895ef' }] }, options: { ...commonOptions, indexAxis: 'y',
+    onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+    onClick: (e, els) => { if (els.length) setCarrierFilter(topDrivers[els[0].index].name); }
+  } });
+
+  // 2. Distribuição por Material — clicável
+  const matL = Object.keys(totals.materials).sort((a,b) => totals.materials[b] - totals.materials[a]).slice(0, 5);
+  if(charts.materials) charts.materials.destroy();
+  charts.materials = new Chart(document.getElementById('chart-materials'), { type: 'doughnut', data: { labels: matL, datasets: [{ data: matL.map(l => totals.materials[l]), backgroundColor: getStableColors(matL, state.materials), borderWidth: 0 }] }, options: { ...commonOptions, cutout: '60%', plugins: { legend: { display: true, position: 'right', labels: { color: '#9aa5b8', font: { size: 9 } } } },
+    onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+    onClick: (e, els) => { if (els.length) toggleMaterialFilter(matL[els[0].index]); }
+  } });
+
+  // 3. Divergências por Transportadora — clicável
+  const topD = [...data].sort((a,b) => b.div - a.div).slice(0, 10);
+  if(charts.div) charts.div.destroy();
+  charts.div = new Chart(document.getElementById('chart-div'), { type: 'bar', data: { labels: topD.map(c => c.name.substring(0,10)), datasets: [{ data: topD.map(c => c.div), backgroundColor: '#ff6b6b' }] }, options: { ...commonOptions,
+    onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+    onClick: (e, els) => { if (els.length) setCarrierFilter(topD[els[0].index].name); }
+  } });
+
+  // 4. Ranking de Placas (Viagens) — clicável
+  const topPlates = Object.entries(totals.plates).sort((a,b) => b[1] - a[1]).slice(0, 10);
+  if(charts.plates) charts.plates.destroy();
+  charts.plates = new Chart(document.getElementById('chart-plates'), { type: 'bar', data: { labels: topPlates.map(p => p[0]), datasets: [{ data: topPlates.map(p => p[1]), backgroundColor: topPlates.map(p => p[0] === state.selectedPlate ? '#00c8aa' : '#9b7fe8') }] }, options: { ...commonOptions,
+    onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+    onClick: (e, els) => { if (els.length) setPlateFilter(topPlates[els[0].index][0]); }
+  } });
+
+  // 5. Viagens por Dia (linha do tempo) — respeita todos os filtros, inclusive placa selecionada
+  const dayKeys = Object.keys(dailyMap).sort();
+  if(charts.daily) charts.daily.destroy();
+  charts.daily = new Chart(document.getElementById('chart-daily'), { type: 'line', data: { labels: dayKeys.map(k => { const [y,m,d] = k.split('-'); return `${d}/${m}`; }), datasets: [{ label: 'Viagens', data: dayKeys.map(k => dailyMap[k]), borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', fill: true, tension: 0.25, pointRadius: dayKeys.length > 60 ? 0 : 3 }] }, options: { ...commonOptions, plugins: { legend: { display: false }, tooltip: { callbacks: { title: (items) => { const idx = items[0].dataIndex; return dayKeys[idx]; } } } } } });
+}
+
+function renderTable(data) {
+  const tbody = document.getElementById('table-body'); tbody.innerHTML = '';
+  data.sort((a,b) => {
+    let vA = a[state.sortCol], vB = b[state.sortCol];
+    if (vA instanceof Set) { vA = vA.size; vB = vB.size; }
+    if (state.sortCol === 'avg') { vA = a.weight/a.records; vB = b.weight/b.records; }
+    return state.sortDir === 'desc' ? (vB > vA ? 1 : -1) : (vA > vB ? 1 : -1);
+  }).forEach(c => {
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.title = 'Clique para filtrar esta transportadora';
+    tr.innerHTML = `<td>${c.name}</td><td>${c.records}</td><td>${c.weight.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td><td>${(c.weight/c.records).toLocaleString('pt-BR',{maximumFractionDigits:1})}</td><td>${c.drivers.size}</td><td>${c.vehicles.size}</td><td style="color:${c.div>0?'var(--coral)':'inherit'}">${c.div}</td>`;
+    tr.onclick = () => setCarrierFilter(c.name);
+    tbody.appendChild(tr);
+  });
+}
+
+function sortTable(col) { if(state.sortCol===col) state.sortDir=state.sortDir==='asc'?'desc':'asc'; else {state.sortCol=col; state.sortDir='desc';} applyFilters(); }
+
+function clearFilters() { 
+  state.selectedMonths.clear(); 
+  state.selectedMaterials.clear();
+  state.selectedPlate = null;
+  document.querySelectorAll('.multi-select-content input[type=checkbox]').forEach(c => c.checked=false); 
+  document.getElementById('month-label').innerText='Todos os meses'; 
+  updateMaterialLabel();
+  document.getElementById('filter-carrier').value=''; 
+  document.getElementById('filter-date-start').value='';
+  document.getElementById('filter-date-end').value='';
+  document.getElementById('table-search').value=''; 
+  applyFilters(); 
+}
+
+function exportExcel() {
+    if (!state.currentData.length) return alert("Nenhum dado para exportar");
+    const dataToExport = state.currentData.map(c => ({
+        "Transportadora": c.name,
+        "Viagens": c.records,
+        "Peso Total (t)": c.weight.toFixed(1),
+        "Média (t)": (c.weight/c.records).toFixed(1),
+        "Motoristas (CPF Únicos)": c.drivers.size,
+        "Veículos": c.vehicles.size,
+        "Divergências": c.div
+    }));
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Performance");
+    XLSX.writeFile(wb, "Relatorio_Performance_Transporte.xlsx");
+}
+
+/* ==================== PÁGINA 2: TEMPO NA USINA ==================== */
+
+function formatMinutes(min) {
+  if (min === null || min === undefined || isNaN(min) || !isFinite(min)) return '--:--';
+  const h = Math.floor(min / 60); const m = Math.round(min % 60);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+function parseTimeStrToMinutes(val) {
+  if (val === null || val === undefined || val === '') return null;
+  if (val instanceof Date) return val.getHours() * 60 + val.getMinutes();
+  const s = String(val).trim();
+  const m = s.match(/^(\d{1,3}):(\d{2})/);
+  if (m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  const n = parseFloat(s.replace(',', '.'));
+  if (!isNaN(n) && n < 10) return Math.round(n * 24 * 60);
+  return null;
+}
+
+function parseBRDateTime(val) {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val) ? null : val.getTime();
+  const s = String(val).trim();
+  const m = s.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+  if (m) {
+    const d = new Date(parseInt(m[3],10), parseInt(m[2],10)-1, parseInt(m[1],10), parseInt(m[4],10), parseInt(m[5],10));
+    return isNaN(d) ? null : d.getTime();
+  }
+  const d2 = new Date(s);
+  return isNaN(d2) ? null : d2.getTime();
+}
+
+function detectColumnsTempo(headers) {
+  const findCol = (keys) => headers.findIndex(h => keys.some(k => norm(h).includes(k)));
+  return {
+    placa: findCol(['placa']),
+    movimento: findCol(['movimento']),
+    ndoc: findCol(['n°doc', 'ndoc', 'n doc']),
+    material: findCol(['material']),
+    tipoDoc: findCol(['tipodoc']),
+    entrada: findCol(['entrada']),
+    saida: findCol(['saida']),
+    tempoEntrePesos: findCol(['tempoentrepesos']),
+    tempoUsina: findCol(['tempo na usina', 'tempousina'])
+  };
+}
+
+function buildTempoFlatEntries(rows) {
+  const headers = rows[0];
+  const cols = detectColumnsTempo(headers);
+  if (cols.placa === -1 || (cols.tempoUsina === -1 && cols.tempoEntrePesos === -1)) return [];
+
+  const entries = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length === 0 || !row[cols.placa]) continue;
+
+    const placa = String(row[cols.placa] || '').trim().toUpperCase();
+    let material = 'DIVERSOS';
+    if (cols.material !== -1) {
+      material = String(row[cols.material] || 'DIVERSOS').split('[')[0].trim().toUpperCase();
+    }
+
+    const tipoDoc = cols.tipoDoc !== -1 ? String(row[cols.tipoDoc] || '').trim().toUpperCase() : '';
+    const ndoc = cols.ndoc !== -1 ? String(row[cols.ndoc] || '').trim() : '';
+    const movimento = cols.movimento !== -1 ? String(row[cols.movimento] || '').trim() : '';
+    const entradaTs = cols.entrada !== -1 ? parseBRDateTime(row[cols.entrada]) : null;
+    const saidaTs = cols.saida !== -1 ? parseBRDateTime(row[cols.saida]) : null;
+    const tempoUsina = cols.tempoUsina !== -1 ? parseTimeStrToMinutes(row[cols.tempoUsina]) : null;
+    const tempoEntrePesos = cols.tempoEntrePesos !== -1 ? parseTimeStrToMinutes(row[cols.tempoEntrePesos]) : null;
+
+    if (tempoUsina === null) continue;
+
+    let monthKey = 'Sem Data';
+    const dateTs = entradaTs;
+    if (dateTs !== null) {
+      const d = new Date(dateTs);
+      monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    }
+
+    // Chave de deduplicação: Movimento (preferencial) ou Placa+N°Doc, com fallback por hash
+    let entryId;
+    if (movimento) entryId = sanitizeDocId('mov_' + movimento);
+    else if (ndoc) entryId = sanitizeDocId('doc_' + placa + '_' + ndoc);
+    else entryId = sanitizeDocId([placa, material, entradaTs, tempoUsina].join('|'));
+
+    entries.push({ id: entryId, placa, material, tipoDoc, entradaTs, saidaTs, tempoUsina, tempoEntrePesos, monthKey, dateTs });
+  }
+
+  return entries;
+}
+
+function populateFiltersTempo() {
+  if (!stateTempo.allEntries) return;
+
+  const monthOptions = document.getElementById('month-options-tempo');
+  monthOptions.innerHTML = '';
+  stateTempo.months.forEach(m => {
+    const parts = m.split('-');
+    const label = `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(parts[1])-1]}/${parts[0]}`;
+    const div = document.createElement('div');
+    div.className = 'multi-select-item';
+    div.innerHTML = `<input type="checkbox" value="${m}"> <span>${label}</span>`;
+    div.onclick = e => {
+      const cb = div.querySelector('input');
+      if (e.target !== cb) cb.checked = !cb.checked;
+      if (cb.checked) stateTempo.selectedMonths.add(cb.value); else stateTempo.selectedMonths.delete(cb.value);
+      document.getElementById('month-label-tempo').innerText = stateTempo.selectedMonths.size === 0 ? 'Todos os meses' : `${stateTempo.selectedMonths.size} selecionados`;
+      applyFiltersTempo();
+    };
+    monthOptions.appendChild(div);
+  });
+
+  const matList = document.getElementById('material-options-list-tempo');
+  matList.innerHTML = '';
+  [...stateTempo.materials].sort().forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'multi-select-item';
+    div.dataset.material = m.toLowerCase();
+    div.innerHTML = `<input type="checkbox" value="${m}"> <span>${m}</span>`;
+    div.onclick = e => {
+      const cb = div.querySelector('input');
+      if (e.target !== cb) cb.checked = !cb.checked;
+      if (cb.checked) stateTempo.selectedMaterials.add(cb.value); else stateTempo.selectedMaterials.delete(cb.value);
+      updateMaterialLabelTempo();
+      applyFiltersTempo();
+    };
+    matList.appendChild(div);
+  });
+
+  const carrierNames = new Set();
+  stateTempo.plateCarrierMap.forEach(name => { if (name) carrierNames.add(name); });
+  const sel = document.getElementById('filter-carrier-tempo');
+  const prevVal = sel.value;
+  sel.innerHTML = '<option value="">Todas as Transportadoras</option>';
+  Array.from(carrierNames).sort().forEach(n => {
+    const opt = document.createElement('option'); opt.value = n; opt.textContent = n; sel.appendChild(opt);
+  });
+  const optNI = document.createElement('option'); optNI.value = '__NI__'; optNI.textContent = 'Não Identificada (sem cruzamento)'; sel.appendChild(optNI);
+  sel.value = prevVal;
+}
+
+function updateMaterialLabelTempo() {
+  document.getElementById('material-label-tempo').innerText = stateTempo.selectedMaterials.size === 0 ? 'Todos os materiais' : `${stateTempo.selectedMaterials.size} selecionados`;
+}
+
+function filterMaterialOptionsTempo() {
+  const q = document.getElementById('material-search-tempo').value.toLowerCase();
+  document.querySelectorAll('#material-options-list-tempo .multi-select-item').forEach(item => {
+    item.classList.toggle('hidden', !item.dataset.material.includes(q));
+  });
+}
+
+function selectAllMaterialsTempo() {
+  document.querySelectorAll('#material-options-list-tempo .multi-select-item:not(.hidden) input').forEach(cb => {
+    cb.checked = true;
+    stateTempo.selectedMaterials.add(cb.value);
+  });
+  updateMaterialLabelTempo();
+  applyFiltersTempo();
+}
+
+function clearMaterialSelectionTempo() {
+  document.querySelectorAll('#material-options-list-tempo input').forEach(cb => cb.checked = false);
+  stateTempo.selectedMaterials.clear();
+  updateMaterialLabelTempo();
+  applyFiltersTempo();
+}
+
+function setCarrierFilterTempo(name) {
+  const sel = document.getElementById('filter-carrier-tempo');
+  sel.value = (sel.value === name) ? '' : name;
+  applyFiltersTempo();
+}
+
+function toggleMaterialFilterTempo(name) {
+  if (stateTempo.selectedMaterials.has(name)) stateTempo.selectedMaterials.delete(name);
+  else stateTempo.selectedMaterials.add(name);
+  document.querySelectorAll('#material-options-list-tempo .multi-select-item input').forEach(cb => {
+    cb.checked = stateTempo.selectedMaterials.has(cb.value);
+  });
+  updateMaterialLabelTempo();
+  applyFiltersTempo();
+}
+
+function setPlateFilterTempo(placa) {
+  stateTempo.selectedPlate = (stateTempo.selectedPlate === placa) ? null : placa;
+  applyFiltersTempo();
+}
+
+function clearPlateFilterTempo() {
+  stateTempo.selectedPlate = null;
+  applyFiltersTempo();
+}
+
+function applyFiltersTempo() {
+  if (!stateTempo.allEntries) return;
+
+  const carrierFilter = document.getElementById('filter-carrier-tempo').value;
+  const search = document.getElementById('table-search-tempo').value.toLowerCase();
+  const dateStartVal = document.getElementById('filter-date-start-tempo').value;
+  const dateEndVal = document.getElementById('filter-date-end-tempo').value;
+  const dateStart = dateStartVal ? new Date(dateStartVal + 'T00:00:00').getTime() : null;
+  const dateEnd = dateEndVal ? new Date(dateEndVal + 'T23:59:59').getTime() : null;
+  const tipoDocFilter = document.getElementById('filter-tipodoc-tempo').value;
+  const criticalThresholdH = parseFloat(document.getElementById('tempo-threshold').value) || 2;
+  const criticalThresholdMin = criticalThresholdH * 60;
+
+  document.getElementById('filter-carrier-tempo').classList.toggle('active', !!carrierFilter);
+  document.getElementById('filter-date-start-tempo').classList.toggle('active', !!dateStartVal);
+  document.getElementById('filter-date-end-tempo').classList.toggle('active', !!dateEndVal);
+
+  const filteredEntries = stateTempo.allEntries.filter(e => {
+    if (stateTempo.selectedMonths.size > 0 && !stateTempo.selectedMonths.has(e.monthKey)) return false;
+    if (stateTempo.selectedMaterials.size > 0 && !stateTempo.selectedMaterials.has(e.material)) return false;
+    if (dateStart !== null && (e.dateTs === null || e.dateTs < dateStart)) return false;
+    if (dateEnd !== null && (e.dateTs === null || e.dateTs > dateEnd)) return false;
+    if (tipoDocFilter && e.tipoDoc !== tipoDocFilter) return false;
+    const carrierName = stateTempo.plateCarrierMap.get(e.placa) || null;
+    if (carrierFilter === '__NI__' && carrierName) return false;
+    if (carrierFilter && carrierFilter !== '__NI__' && carrierName !== carrierFilter) return false;
+    if (stateTempo.selectedPlate && e.placa !== stateTempo.selectedPlate) return false;
+    return true;
+  });
+
+  const carrierAgg = new Map();
+  const plateAgg = new Map();
+  const materialCount = {};
+  const dailyAgg = {};
+  let totalSum = 0, totalCount = 0, maxTempo = 0, criticalCount = 0;
+  let entrePesosSum = 0, entrePesosCount = 0;
+  const vehicles = new Set();
+
+  filteredEntries.forEach(e => {
+    const carrierName = stateTempo.plateCarrierMap.get(e.placa) || 'Não Identificada';
+    if (!carrierAgg.has(carrierName)) carrierAgg.set(carrierName, { name: carrierName, sum: 0, count: 0, min: Infinity, max: 0, vehicles: new Set() });
+    const ca = carrierAgg.get(carrierName);
+    ca.sum += e.tempoUsina; ca.count++; ca.vehicles.add(e.placa);
+    if (e.tempoUsina < ca.min) ca.min = e.tempoUsina;
+    if (e.tempoUsina > ca.max) ca.max = e.tempoUsina;
+
+    if (!plateAgg.has(e.placa)) plateAgg.set(e.placa, { placa: e.placa, carrier: carrierName, sum: 0, count: 0 });
+    const pa = plateAgg.get(e.placa);
+    pa.sum += e.tempoUsina; pa.count++;
+
+    materialCount[e.material] = (materialCount[e.material] || 0) + 1;
+    vehicles.add(e.placa);
+
+    totalSum += e.tempoUsina; totalCount++;
+    if (e.tempoUsina > maxTempo) maxTempo = e.tempoUsina;
+    if (e.tempoUsina >= criticalThresholdMin) criticalCount++;
+
+    if (e.tempoEntrePesos !== null) { entrePesosSum += e.tempoEntrePesos; entrePesosCount++; }
+
+    if (e.dateTs !== null) {
+      const d = new Date(e.dateTs);
+      const dayKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      if (!dailyAgg[dayKey]) dailyAgg[dayKey] = { sum: 0, count: 0 };
+      dailyAgg[dayKey].sum += e.tempoUsina; dailyAgg[dayKey].count++;
+    }
+  });
+
+  let carrierData = Array.from(carrierAgg.values());
+  if (search) carrierData = carrierData.filter(c => c.name.toLowerCase().includes(search));
+  stateTempo.currentData = carrierData;
+
+  const totals = { totalSum, totalCount, maxTempo, criticalCount, entrePesosSum, entrePesosCount, vehicles, carrierAgg, materialCount, plateAgg, dailyAgg };
+  updateUITempo(totals, filteredEntries, criticalThresholdMin);
+
+  document.getElementById('plate-chip-tempo').style.display = stateTempo.selectedPlate ? 'flex' : 'none';
+  if (stateTempo.selectedPlate) document.getElementById('plate-chip-value-tempo').innerText = stateTempo.selectedPlate;
+  document.getElementById('chart-tempo-daily-title').innerText = stateTempo.selectedPlate ? `Tempo Médio na Usina por Dia — Placa ${stateTempo.selectedPlate}` : 'Tempo Médio na Usina por Dia';
+}
+
+function updateUITempo(totals, filteredEntries, criticalThresholdMin) {
+  document.getElementById('kpi-tempo-medio').innerHTML = totals.totalCount > 0 ? formatMinutes(totals.totalSum / totals.totalCount) : '--:--';
+  document.getElementById('kpi-tempo-registros').innerText = `${totals.totalCount} registros`;
+  document.getElementById('kpi-tempo-entrepesos').innerHTML = totals.entrePesosCount > 0 ? formatMinutes(totals.entrePesosSum / totals.entrePesosCount) : '--:--';
+  document.getElementById('kpi-tempo-vehicles').innerText = totals.vehicles.size;
+  document.getElementById('kpi-tempo-carriers').innerText = Array.from(totals.carrierAgg.keys()).filter(n => n !== 'Não Identificada').length;
+  document.getElementById('kpi-tempo-criticas').innerText = totals.criticalCount;
+  document.getElementById('kpi-tempo-criticas-sub').innerText = `acima de ${(criticalThresholdMin/60).toFixed(1)}h`;
+
+  renderChartsTempo(totals, filteredEntries);
+  renderCarrierTableTempo();
+  renderWorstTimesTable(filteredEntries, criticalThresholdMin);
+}
+
+function renderChartsTempo(totals, filteredEntries) {
+  const commonOptions = { responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9aa5b8', font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: '#9aa5b8', font: { size: 10 } }, grid: { color: '#1a2235' }, beginAtZero: true } } };
+
+  const carrierArr = Array.from(totals.carrierAgg.values()).filter(c => c.count > 0);
+  const topCarriers = [...carrierArr].sort((a,b) => (b.sum/b.count) - (a.sum/a.count)).slice(0, 10);
+  if (chartsTempo.carriers) chartsTempo.carriers.destroy();
+  chartsTempo.carriers = new Chart(document.getElementById('chart-tempo-carriers'), { type: 'bar', data: { labels: topCarriers.map(c => c.name.substring(0,15)), datasets: [{ label: 'Tempo Médio (min)', data: topCarriers.map(c => +(c.sum/c.count).toFixed(1)), backgroundColor: '#4895ef' }] }, options: { ...commonOptions, indexAxis: 'y',
+    scales: { ...commonOptions.scales, x: { ...commonOptions.scales.x, ticks: { ...commonOptions.scales.x.ticks, callback: v => v + ' min' } } },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } },
+    onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+    onClick: (e, els) => { if (els.length) setCarrierFilterTempo(topCarriers[els[0].index].name); }
+  } });
+
+  const matL = Object.keys(totals.materialCount).sort((a,b) => totals.materialCount[b] - totals.materialCount[a]).slice(0, 6);
+  if (chartsTempo.materials) chartsTempo.materials.destroy();
+  chartsTempo.materials = new Chart(document.getElementById('chart-tempo-materials'), { type: 'doughnut', data: { labels: matL, datasets: [{ data: matL.map(l => totals.materialCount[l]), backgroundColor: getStableColors(matL, stateTempo.materials), borderWidth: 0 }] }, options: { ...commonOptions, cutout: '60%', plugins: { legend: { display: true, position: 'right', labels: { color: '#9aa5b8', font: { size: 9 } } } },
+    onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+    onClick: (e, els) => { if (els.length) toggleMaterialFilterTempo(matL[els[0].index]); }
+  } });
+
+  const plateArr = Array.from(totals.plateAgg.values());
+  const topPlates = [...plateArr].sort((a,b) => (b.sum/b.count) - (a.sum/a.count)).slice(0, 10);
+  if (chartsTempo.plates) chartsTempo.plates.destroy();
+  chartsTempo.plates = new Chart(document.getElementById('chart-tempo-plates'), { type: 'bar', data: { labels: topPlates.map(p => p.placa), datasets: [{ data: topPlates.map(p => +(p.sum/p.count).toFixed(1)), backgroundColor: topPlates.map(p => p.placa === stateTempo.selectedPlate ? '#00c8aa' : '#9b7fe8') }] }, options: { ...commonOptions,
+    scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, ticks: { ...commonOptions.scales.y.ticks, callback: v => v + ' min' } } },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } },
+    onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+    onClick: (e, els) => { if (els.length) setPlateFilterTempo(topPlates[els[0].index].placa); }
+  } });
+
+  const buckets = [ { label: '< 30min', max: 30 }, { label: '30-60min', max: 60 }, { label: '1-2h', max: 120 }, { label: '2-4h', max: 240 }, { label: '> 4h', max: Infinity } ];
+  const bucketCounts = buckets.map(() => 0);
+  filteredEntries.forEach(e => {
+    for (let i = 0; i < buckets.length; i++) { if (e.tempoUsina <= buckets[i].max) { bucketCounts[i]++; break; } }
+  });
+  if (chartsTempo.dist) chartsTempo.dist.destroy();
+  chartsTempo.dist = new Chart(document.getElementById('chart-tempo-distribution'), { type: 'bar', data: { labels: buckets.map(b => b.label), datasets: [{ data: bucketCounts, backgroundColor: '#f0a500' }] }, options: commonOptions });
+
+  const dayKeys = Object.keys(totals.dailyAgg).sort();
+  if (chartsTempo.daily) chartsTempo.daily.destroy();
+  chartsTempo.daily = new Chart(document.getElementById('chart-tempo-daily'), { type: 'line', data: { labels: dayKeys.map(k => { const [y,m,d] = k.split('-'); return `${d}/${m}`; }), datasets: [{ label: 'Tempo Médio (min)', data: dayKeys.map(k => +(totals.dailyAgg[k].sum/totals.dailyAgg[k].count).toFixed(1)), borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', fill: true, tension: 0.25, pointRadius: dayKeys.length > 60 ? 0 : 3 }] }, options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, ticks: { ...commonOptions.scales.y.ticks, callback: v => v + ' min' } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw), title: (items) => { const idx = items[0].dataIndex; return dayKeys[idx]; } } } } } });
+}
+
+function renderCarrierTableTempo() {
+  const tbody = document.getElementById('table-body-tempo'); tbody.innerHTML = '';
+  let arr = [...stateTempo.currentData];
+  arr.sort((a,b) => {
+    let vA, vB;
+    if (stateTempo.sortCol === 'avg') { vA = a.sum/a.count; vB = b.sum/b.count; }
+    else if (stateTempo.sortCol === 'min') { vA = a.min; vB = b.min; }
+    else if (stateTempo.sortCol === 'max') { vA = a.max; vB = b.max; }
+    else if (stateTempo.sortCol === 'count') { vA = a.count; vB = b.count; }
+    else if (stateTempo.sortCol === 'vehicles') { vA = a.vehicles.size; vB = b.vehicles.size; }
+    else { vA = a.name; vB = b.name; }
+    return stateTempo.sortDir === 'desc' ? (vB > vA ? 1 : -1) : (vA > vB ? 1 : -1);
+  }).forEach(c => {
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.title = 'Clique para filtrar esta transportadora';
+    tr.innerHTML = `<td>${c.name}</td><td>${c.count}</td><td>${formatMinutes(c.sum/c.count)}</td><td>${formatMinutes(c.min)}</td><td>${formatMinutes(c.max)}</td><td>${c.vehicles.size}</td>`;
+    tr.onclick = () => setCarrierFilterTempo(c.name);
+    tbody.appendChild(tr);
+  });
+}
+
+function sortTableTempo(col) {
+  if (stateTempo.sortCol === col) stateTempo.sortDir = stateTempo.sortDir === 'asc' ? 'desc' : 'asc';
+  else { stateTempo.sortCol = col; stateTempo.sortDir = 'desc'; }
+  applyFiltersTempo();
+}
+
+function renderWorstTimesTable(filteredEntries, criticalThresholdMin) {
+  const tbody = document.getElementById('worst-table-body'); tbody.innerHTML = '';
+  const sorted = [...filteredEntries].sort((a,b) => b.tempoUsina - a.tempoUsina).slice(0, 25);
+  if (sorted.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-3)">Nenhum registro encontrado no período filtrado.</td></tr>';
+    return;
+  }
+  sorted.forEach(e => {
+    const carrierName = stateTempo.plateCarrierMap.get(e.placa) || 'Não Identificada';
+    const tr = document.createElement('tr');
+    if (e.tempoUsina >= criticalThresholdMin) tr.classList.add('idle-row-critical');
+    tr.style.cursor = 'pointer';
+    tr.title = 'Clique para filtrar esta placa';
+    const entradaStr = e.entradaTs ? new Date(e.entradaTs).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '--';
+    const saidaStr = e.saidaTs ? new Date(e.saidaTs).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '--';
+    tr.innerHTML = `<td>${e.placa}</td><td>${carrierName}</td><td>${e.material}</td><td>${entradaStr}</td><td>${saidaStr}</td><td>${formatMinutes(e.tempoUsina)}</td><td>${e.tempoEntrePesos !== null ? formatMinutes(e.tempoEntrePesos) : '--:--'}</td>`;
+    tr.onclick = () => setPlateFilterTempo(e.placa);
+    tbody.appendChild(tr);
+  });
+}
+
+function clearFiltersTempo() {
+  stateTempo.selectedMonths.clear();
+  stateTempo.selectedMaterials.clear();
+  stateTempo.selectedPlate = null;
+  document.querySelectorAll('#month-options-tempo input[type=checkbox], #material-options-list-tempo input[type=checkbox]').forEach(c => c.checked = false);
+  document.getElementById('month-label-tempo').innerText = 'Todos os meses';
+  updateMaterialLabelTempo();
+  document.getElementById('filter-carrier-tempo').value = '';
+  document.getElementById('filter-date-start-tempo').value = '';
+  document.getElementById('filter-date-end-tempo').value = '';
+  document.getElementById('filter-tipodoc-tempo').value = '';
+  document.getElementById('table-search-tempo').value = '';
+  applyFiltersTempo();
+}
+
+function exportExcelTempo() {
+  if (!stateTempo.currentData.length) return alert("Nenhum dado para exportar");
+  const dataToExport = stateTempo.currentData.map(c => ({
+    "Transportadora": c.name,
+    "Viagens": c.count,
+    "Tempo Médio na Usina": formatMinutes(c.sum/c.count),
+    "Tempo Mínimo": formatMinutes(c.min),
+    "Tempo Máximo": formatMinutes(c.max),
+    "Veículos": c.vehicles.size
+  }));
+  const ws = XLSX.utils.json_to_sheet(dataToExport);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Tempo na Usina");
+  XLSX.writeFile(wb, "Relatorio_Tempo_Usina.xlsx");
+}
+
+</script>
+</body>
+</html>
