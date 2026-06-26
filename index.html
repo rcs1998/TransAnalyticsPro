@@ -200,15 +200,30 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
 <div id="firebase-toast" style="display:none; position:fixed; bottom:24px; right:24px; background:var(--bg-2); border:1px solid var(--border); color:var(--text-1); padding:12px 18px; border-radius:var(--radius); font-size:13px; z-index:600; box-shadow:0 8px 24px rgba(0,0,0,0.3);"></div>
 
 <div id="upload-screen" style="display:none">
-  <div class="upload-card">
-    <div class="upload-icon"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg></div>
-    <h2 class="upload-title">Torre de Controle Logística</h2>
-    <p class="upload-sub">Carregue o arquivo <strong>.xlsx</strong> com as 2 abas (Performance de Transportadoras e Tempo Total UOB) para uma análise completa.</p>
-    <div class="upload-dropzone">
-      <input type="file" id="file-input" accept=".xlsx, .xls" />
-      <p class="upload-dropzone-text">Clique ou arraste o arquivo aqui para processar</p>
+  <div style="display:flex; gap:24px; flex-wrap:wrap; justify-content:center; max-width:1200px;">
+    <div class="upload-card" style="max-width:480px;">
+      <div class="upload-icon"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg></div>
+      <h2 class="upload-title">Performance Transportadoras</h2>
+      <p class="upload-sub">Suba apenas a planilha de transportadoras (1 aba). Pode subir sozinha, sem a outra.</p>
+      <div class="upload-dropzone">
+        <input type="file" id="file-input-perf" accept=".xlsx, .xls" />
+        <p class="upload-dropzone-text">Clique ou arraste o arquivo aqui</p>
+      </div>
+      <p id="upload-status-perf" style="font-size:12px; color:var(--text-3); min-height:16px;"></p>
+    </div>
+
+    <div class="upload-card" style="max-width:480px;">
+      <div class="upload-icon"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z"/></svg></div>
+      <h2 class="upload-title">Tempo Total UOB</h2>
+      <p class="upload-sub">Suba apenas a planilha de tempo na usina (1 aba). Pode subir sozinha, sem a outra.</p>
+      <div class="upload-dropzone">
+        <input type="file" id="file-input-tempo" accept=".xlsx, .xls" />
+        <p class="upload-dropzone-text">Clique ou arraste o arquivo aqui</p>
+      </div>
+      <p id="upload-status-tempo" style="font-size:12px; color:var(--text-3); min-height:16px;"></p>
     </div>
   </div>
+  <p style="text-align:center; color:var(--text-3); font-size:12px; margin-top:16px; max-width:600px;">Se preferir, ainda é possível subir <strong>1 arquivo .xlsx com as 2 abas</strong> em qualquer uma das caixas acima — o sistema identifica automaticamente o conteúdo de cada aba.</p>
 </div>
 
 <div id="dashboard">
@@ -646,13 +661,16 @@ function sanitizeDocId(s) {
   return clean || simpleHash(String(Math.random()));
 }
 
-async function saveEntriesToFirestore(collectionName, entries) {
+async function saveEntriesToFirestore(collectionName, entries, progressEl) {
   if (!entries.length) return;
   const colRef = db.collection(collectionName);
   const chunkSize = 400;
+  const totalChunks = Math.ceil(entries.length / chunkSize);
   let saved = 0;
   try {
     for (let i = 0; i < entries.length; i += chunkSize) {
+      const chunkNum = Math.floor(i / chunkSize) + 1;
+      if (progressEl) progressEl.innerText = `Salvando lote ${chunkNum}/${totalChunks} (${collectionName === 'tempo_usina_entries' ? 'Tempo na Usina' : 'Performance'})...`;
       const batch = db.batch();
       entries.slice(i, i + chunkSize).forEach(e => {
         const { id, ...data } = e;
@@ -664,6 +682,7 @@ async function saveEntriesToFirestore(collectionName, entries) {
     showToast(`✅ ${saved} registros sincronizados com o Firebase (${collectionName === 'tempo_usina_entries' ? 'Tempo na Usina' : 'Performance'}).`);
   } catch (err) {
     showToast('⚠️ Erro ao salvar no Firebase: ' + err.message, 6000);
+    throw err;
   }
 }
 
@@ -810,10 +829,11 @@ function toggleFilter(id) {
 
 window.onclick = e => { if (!e.target.closest('.multi-select')) document.querySelectorAll('.multi-select-content').forEach(c => c.classList.remove('show')); };
 
-document.getElementById('file-input').addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
+function handleUploadFile(file, statusElId) {
+  const statusEl = document.getElementById(statusElId);
   document.getElementById('loading-screen').classList.add('show');
+  document.getElementById('loading-msg').innerText = 'Lendo arquivo: ' + file.name + '...';
+  statusEl.innerText = '⏳ Lendo arquivo...';
   const reader = new FileReader();
   reader.onload = async (e) => {
     try {
@@ -838,23 +858,42 @@ document.getElementById('file-input').addEventListener('change', e => {
       });
 
       if (!foundPerf && !foundTempo) {
-        alert("Não foi possível identificar as abas de dados no arquivo.");
+        statusEl.innerText = '❌ Não foi possível identificar os dados nesse arquivo.';
         document.getElementById('loading-screen').classList.remove('show');
         return;
       }
 
-      await Promise.all([
-        saveEntriesToFirestore('performance_entries', perfFlat),
-        saveEntriesToFirestore('tempo_usina_entries', tempoFlat)
-      ]);
-      document.getElementById('file-input').value = '';
+      document.getElementById('loading-msg').innerText = `Salvando ${perfFlat.length + tempoFlat.length} registros no Firebase...`;
+      statusEl.innerText = `⏳ Salvando ${perfFlat.length + tempoFlat.length} registros...`;
+
+      const tasks = [];
+      if (perfFlat.length) tasks.push(saveEntriesToFirestore('performance_entries', perfFlat, document.getElementById('loading-msg')));
+      if (tempoFlat.length) tasks.push(saveEntriesToFirestore('tempo_usina_entries', tempoFlat, document.getElementById('loading-msg')));
+      await Promise.all(tasks);
+
+      statusEl.innerText = `✅ ${perfFlat.length + tempoFlat.length} registros sincronizados.`;
+      document.getElementById('loading-msg').innerText = 'Carregando dashboard...';
       await loadFromFirestore();
     } catch (err) {
-      alert("Erro ao processar o arquivo: " + err.message);
+      statusEl.innerText = '❌ Erro: ' + err.message;
       document.getElementById('loading-screen').classList.remove('show');
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('file-input-perf').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  handleUploadFile(file, 'upload-status-perf');
+  e.target.value = '';
+});
+
+document.getElementById('file-input-tempo').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  handleUploadFile(file, 'upload-status-tempo');
+  e.target.value = '';
 });
 
 function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
