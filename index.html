@@ -238,7 +238,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
         <span class="filter-label">Mês</span>
         <div class="multi-select">
           <button class="multi-select-btn" onclick="toggleFilter('month-options')">
-            <span id="month-label">Todos os meses</span>
+            <span id="month-label">Mês mais recente</span>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
           </button>
           <div class="multi-select-content" id="month-options"></div>
@@ -410,7 +410,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
         <span class="filter-label">Mês</span>
         <div class="multi-select">
           <button class="multi-select-btn" onclick="toggleFilter('month-options-tempo')">
-            <span id="month-label-tempo">Todos os meses</span>
+            <span id="month-label-tempo">Mês mais recente</span>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
           </button>
           <div class="multi-select-content" id="month-options-tempo"></div>
@@ -680,6 +680,14 @@ async function saveEntriesToFirestore(collectionName, entries, progressEl) {
       await batch.commit();
       saved += Math.min(chunkSize, entries.length - i);
     }
+    const monthsInBatch = [...new Set(entries.map(e => e.monthKey).filter(m => m && m !== 'Sem Data'))];
+    if (monthsInBatch.length) {
+      const metaDocId = collectionName === 'tempo_usina_entries' ? 'tempo_months' : 'performance_months';
+      await db.collection('meta').doc(metaDocId).set(
+        { months: firebase.firestore.FieldValue.arrayUnion(...monthsInBatch) },
+        { merge: true }
+      );
+    }
     showToast(`✅ ${saved} registros sincronizados com o Firebase (${collectionName === 'tempo_usina_entries' ? 'Tempo na Usina' : 'Performance'}).`);
   } catch (err) {
     showToast('⚠️ Erro ao salvar no Firebase: ' + err.message, 6000);
@@ -687,73 +695,68 @@ async function saveEntriesToFirestore(collectionName, entries, progressEl) {
   }
 }
 
-let isFullDataLoaded = false;
-
-function getCutoffMonthKey(monthsBack) {
-  const d = new Date();
-  d.setMonth(d.getMonth() - monthsBack);
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+function monthLabel(m) {
+  const parts = m.split('-');
+  return `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(parts[1])-1]}/${parts[0]}`;
 }
 
-async function loadFromFirestore(fullLoad = false) {
+async function ensureMonthLoadedPerf(monthKey) {
+  if (state.loadedMonths.has(monthKey)) return;
+  const snap = await db.collection('performance_entries').where('monthKey', '==', monthKey).get();
+  snap.forEach(doc => {
+    const e = doc.data();
+    if (!state.materials.includes(e.material)) state.materials.push(e.material);
+    if (!state.carriers.has(e.carrierName)) state.carriers.set(e.carrierName, { name: e.carrierName, allEntries: [] });
+    state.carriers.get(e.carrierName).allEntries.push({ cpf: e.cpf, placa: e.placa, weight: e.weight, material: e.material, isDiv: e.isDiv, monthKey: e.monthKey, dateTs: e.dateTs });
+  });
+  state.loadedMonths.add(monthKey);
+  state.materials.sort();
+}
+
+async function ensureMonthLoadedTempo(monthKey) {
+  if (stateTempo.loadedMonths.has(monthKey)) return;
+  const snap = await db.collection('tempo_usina_entries').where('monthKey', '==', monthKey).get();
+  snap.forEach(doc => {
+    const e = doc.data();
+    stateTempo.allEntries.push(e);
+    if (!stateTempo.materials.includes(e.material)) stateTempo.materials.push(e.material);
+  });
+  stateTempo.loadedMonths.add(monthKey);
+  stateTempo.materials.sort();
+}
+
+async function loadFromFirestore() {
   document.getElementById('loading-screen').classList.add('show');
-  document.getElementById('loading-msg').innerText = fullLoad ? 'Carregando histórico completo...' : 'Carregando últimos 3 meses...';
-  isFullDataLoaded = fullLoad;
+  document.getElementById('loading-msg').innerText = 'Carregando mês mais recente...';
   try {
-    const cutoff = getCutoffMonthKey(3); // últimos 3 meses por padrão
+    const [perfMetaDoc, tempoMetaDoc] = await Promise.all([
+      db.collection('meta').doc('performance_months').get(),
+      db.collection('meta').doc('tempo_months').get()
+    ]);
+    state.months = perfMetaDoc.exists ? (perfMetaDoc.data().months || []).slice().sort() : [];
+    stateTempo.months = tempoMetaDoc.exists ? (tempoMetaDoc.data().months || []).slice().sort() : [];
 
-    const perfQuery = fullLoad ? db.collection('performance_entries') : db.collection('performance_entries').where('monthKey', '>=', cutoff);
-    const tempoQuery = fullLoad ? db.collection('tempo_usina_entries') : db.collection('tempo_usina_entries').where('monthKey', '>=', cutoff);
+    state.carriers = new Map(); state.materials = []; state.loadedMonths = new Set();
+    stateTempo.allEntries = []; stateTempo.materials = []; stateTempo.loadedMonths = new Set();
 
-    const [perfSnap, tempoSnap] = await Promise.all([perfQuery.get(), tempoQuery.get()]);
+    const latestPerfMonth = state.months[state.months.length - 1];
+    const latestTempoMonth = stateTempo.months[stateTempo.months.length - 1];
 
-    if (!perfSnap.empty) {
-      const carrierMap = new Map();
-      const monthSet = new Set(); const materialSet = new Set();
-      perfSnap.forEach(doc => {
-        const e = doc.data();
-        materialSet.add(e.material);
-        if (e.monthKey && e.monthKey !== 'Sem Data') monthSet.add(e.monthKey);
-        if (!carrierMap.has(e.carrierName)) carrierMap.set(e.carrierName, { name: e.carrierName, allEntries: [] });
-        carrierMap.get(e.carrierName).allEntries.push({ cpf: e.cpf, placa: e.placa, weight: e.weight, material: e.material, isDiv: e.isDiv, monthKey: e.monthKey, dateTs: e.dateTs });
-      });
-      state.carriers = carrierMap;
-      state.months = Array.from(monthSet).sort();
-      state.materials = Array.from(materialSet).sort();
-    } else {
-      state.carriers = new Map(); state.months = []; state.materials = [];
-    }
-
-    if (!tempoSnap.empty) {
-      const entries = []; const monthSet2 = new Set(); const materialSet2 = new Set();
-      tempoSnap.forEach(doc => {
-        const e = doc.data();
-        entries.push(e);
-        materialSet2.add(e.material);
-        if (e.monthKey && e.monthKey !== 'Sem Data') monthSet2.add(e.monthKey);
-      });
-      stateTempo.allEntries = entries;
-      stateTempo.months = Array.from(monthSet2).sort();
-      stateTempo.materials = Array.from(materialSet2).sort();
-    } else {
-      stateTempo.allEntries = []; stateTempo.months = []; stateTempo.materials = [];
-    }
+    if (latestPerfMonth) await ensureMonthLoadedPerf(latestPerfMonth);
+    if (latestTempoMonth) await ensureMonthLoadedTempo(latestTempoMonth);
 
     buildPlateCarrierMap();
     populateFilters();
     applyFilters();
     populateFiltersTempo();
     applyFiltersTempo();
-    updateDataScopeBanner(fullLoad, perfSnap.size + tempoSnap.size);
+    updateDataScopeBanner(latestPerfMonth, latestTempoMonth);
 
-    if (!perfSnap.empty || !tempoSnap.empty) {
+    if (state.months.length || stateTempo.months.length) {
       document.getElementById('upload-screen').style.display = 'none';
       document.getElementById('dashboard').classList.add('show');
       document.getElementById('header-file-info').classList.add('show');
       document.getElementById('header-filename').innerText = 'Base sincronizada (Firebase)';
-    } else if (!fullLoad) {
-      // não achou nada nos últimos 3 meses — tenta carregar tudo antes de pedir upload
-      return loadFromFirestore(true);
     } else {
       document.getElementById('upload-screen').style.display = 'flex';
       document.getElementById('dashboard').classList.remove('show');
@@ -765,20 +768,28 @@ async function loadFromFirestore(fullLoad = false) {
   document.getElementById('loading-screen').classList.remove('show');
 }
 
-function updateDataScopeBanner(fullLoad, count) {
+async function loadAllMonths() {
+  document.getElementById('loading-screen').classList.add('show');
+  document.getElementById('loading-msg').innerText = 'Carregando todos os meses...';
+  for (const m of state.months) await ensureMonthLoadedPerf(m);
+  for (const m of stateTempo.months) await ensureMonthLoadedTempo(m);
+  populateFilters(); applyFilters(); populateFiltersTempo(); applyFiltersTempo();
+  document.getElementById('loading-screen').classList.remove('show');
+  showToast('✅ Todos os meses disponíveis foram carregados.');
+}
+
+function updateDataScopeBanner(latestPerfMonth, latestTempoMonth) {
   const banner = document.getElementById('data-scope-banner');
   if (!banner) return;
-  if (fullLoad) {
-    banner.innerHTML = `📚 Exibindo <strong>histórico completo</strong> (${count} registros). <a onclick="loadFromFirestore(false)" style="color:var(--accent); cursor:pointer; text-decoration:underline;">Voltar para últimos 3 meses</a>`;
-  } else {
-    banner.innerHTML = `🗓️ Exibindo apenas os <strong>últimos 3 meses</strong> (${count} registros) para economizar leituras. <a onclick="loadFromFirestore(true)" style="color:var(--accent); cursor:pointer; text-decoration:underline;">Carregar histórico completo</a>`;
-  }
+  const lbl = m => m ? monthLabel(m) : '--';
+  banner.innerHTML = `🗓️ Exibindo o <strong>mês mais recente</strong> por padrão (Performance: <strong>${lbl(latestPerfMonth)}</strong> · Tempo na Usina: <strong>${lbl(latestTempoMonth)}</strong>). Marque outros meses no filtro "Mês" para carregá-los, ou <a onclick="loadAllMonths()" style="color:var(--accent); cursor:pointer; text-decoration:underline;">carregue todos de uma vez</a>.`;
 }
 
 let state = {
   carriers: new Map(),
   months: [],
   materials: [],
+  loadedMonths: new Set(),
   selectedMonths: new Set(),
   selectedMaterials: new Set(),
   selectedPlate: null,
@@ -793,6 +804,7 @@ let stateTempo = {
   plateCarrierMap: new Map(),
   months: [],
   materials: [],
+  loadedMonths: new Set(),
   selectedMonths: new Set(),
   selectedMaterials: new Set(),
   selectedPlate: null,
@@ -1044,12 +1056,24 @@ function populateFilters() {
     const label = `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(parts[1])-1]}/${parts[0]}`;
     const div = document.createElement('div');
     div.className = 'multi-select-item';
-    div.innerHTML = `<input type="checkbox" value="${m}"> <span>${label}</span>`;
-    div.onclick = e => {
+    div.innerHTML = `<input type="checkbox" value="${m}" ${state.selectedMonths.has(m) ? "checked" : ""}> <span>${label}</span>`;
+    div.onclick = async e => {
       const cb = div.querySelector('input');
       if (e.target !== cb) cb.checked = !cb.checked;
-      if (cb.checked) state.selectedMonths.add(cb.value); else state.selectedMonths.delete(cb.value);
-      document.getElementById('month-label').innerText = state.selectedMonths.size === 0 ? 'Todos os meses' : `${state.selectedMonths.size} selecionados`;
+      if (cb.checked) {
+        state.selectedMonths.add(cb.value);
+        document.getElementById('month-label').innerText = `${state.selectedMonths.size} selecionados`;
+        if (!state.loadedMonths.has(cb.value)) {
+          cb.disabled = true;
+          showToast('Carregando ' + label + '...', 2000);
+          await ensureMonthLoadedPerf(cb.value);
+          cb.disabled = false;
+          populateFilters();
+        }
+      } else {
+        state.selectedMonths.delete(cb.value);
+        document.getElementById('month-label').innerText = state.selectedMonths.size === 0 ? 'Mês mais recente' : `${state.selectedMonths.size} selecionados`;
+      }
       applyFilters();
     };
     monthOptions.appendChild(div);
@@ -1066,7 +1090,7 @@ function populateFilters() {
     const div = document.createElement('div');
     div.className = 'multi-select-item';
     div.dataset.material = m.toLowerCase();
-    div.innerHTML = `<input type="checkbox" value="${m}"> <span>${m}</span>`;
+    div.innerHTML = `<input type="checkbox" value="${m}" ${state.selectedMaterials.has(m) ? "checked" : ""}> <span>${m}</span>`;
     div.onclick = e => {
       const cb = div.querySelector('input');
       if (e.target !== cb) cb.checked = !cb.checked;
@@ -1325,7 +1349,7 @@ function clearFilters() {
   state.selectedMaterials.clear();
   state.selectedPlate = null;
   document.querySelectorAll('.multi-select-content input[type=checkbox]').forEach(c => c.checked=false); 
-  document.getElementById('month-label').innerText='Todos os meses'; 
+  document.getElementById('month-label').innerText='Todos os meses carregados'; 
   updateMaterialLabel();
   document.getElementById('filter-carrier').value=''; 
   document.getElementById('filter-date-start').value='';
@@ -1454,12 +1478,24 @@ function populateFiltersTempo() {
     const label = `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(parts[1])-1]}/${parts[0]}`;
     const div = document.createElement('div');
     div.className = 'multi-select-item';
-    div.innerHTML = `<input type="checkbox" value="${m}"> <span>${label}</span>`;
-    div.onclick = e => {
+    div.innerHTML = `<input type="checkbox" value="${m}" ${stateTempo.selectedMonths.has(m) ? "checked" : ""}> <span>${label}</span>`;
+    div.onclick = async e => {
       const cb = div.querySelector('input');
       if (e.target !== cb) cb.checked = !cb.checked;
-      if (cb.checked) stateTempo.selectedMonths.add(cb.value); else stateTempo.selectedMonths.delete(cb.value);
-      document.getElementById('month-label-tempo').innerText = stateTempo.selectedMonths.size === 0 ? 'Todos os meses' : `${stateTempo.selectedMonths.size} selecionados`;
+      if (cb.checked) {
+        stateTempo.selectedMonths.add(cb.value);
+        document.getElementById('month-label-tempo').innerText = `${stateTempo.selectedMonths.size} selecionados`;
+        if (!stateTempo.loadedMonths.has(cb.value)) {
+          cb.disabled = true;
+          showToast('Carregando ' + label + '...', 2000);
+          await ensureMonthLoadedTempo(cb.value);
+          cb.disabled = false;
+          populateFiltersTempo();
+        }
+      } else {
+        stateTempo.selectedMonths.delete(cb.value);
+        document.getElementById('month-label-tempo').innerText = stateTempo.selectedMonths.size === 0 ? 'Mês mais recente' : `${stateTempo.selectedMonths.size} selecionados`;
+      }
       applyFiltersTempo();
     };
     monthOptions.appendChild(div);
@@ -1471,7 +1507,7 @@ function populateFiltersTempo() {
     const div = document.createElement('div');
     div.className = 'multi-select-item';
     div.dataset.material = m.toLowerCase();
-    div.innerHTML = `<input type="checkbox" value="${m}"> <span>${m}</span>`;
+    div.innerHTML = `<input type="checkbox" value="${m}" ${stateTempo.selectedMaterials.has(m) ? "checked" : ""}> <span>${m}</span>`;
     div.onclick = e => {
       const cb = div.querySelector('input');
       if (e.target !== cb) cb.checked = !cb.checked;
@@ -1737,7 +1773,7 @@ function clearFiltersTempo() {
   stateTempo.selectedMaterials.clear();
   stateTempo.selectedPlate = null;
   document.querySelectorAll('#month-options-tempo input[type=checkbox], #material-options-list-tempo input[type=checkbox]').forEach(c => c.checked = false);
-  document.getElementById('month-label-tempo').innerText = 'Todos os meses';
+  document.getElementById('month-label-tempo').innerText = 'Todos os meses carregados';
   updateMaterialLabelTempo();
   document.getElementById('filter-carrier-tempo').value = '';
   document.getElementById('filter-date-start-tempo').value = '';
