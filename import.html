@@ -62,6 +62,14 @@
     </div>
 
     <button class="btn" onclick="auth.signOut()">Sair</button>
+
+    <div class="card" style="margin-top:20px;">
+      <h2>🔧 Reconstruir índice de meses (rodar 1 vez)</h2>
+      <p>Necessário apenas se você já tinha dados importados <strong>antes</strong> dessa atualização. Lê a base inteira uma única vez e monta a lista de meses disponíveis — depois disso, novos uploads atualizam essa lista automaticamente, sem precisar repetir isso.</p>
+      <button class="btn btn-primary" onclick="rebuildMonthsIndex()">Reconstruir índice agora</button>
+      <div class="status" id="status-rebuild"></div>
+      <div class="log" id="log-rebuild" style="display:none"></div>
+    </div>
   </div>
 </div>
 
@@ -266,6 +274,21 @@ async function saveEntriesFast(collectionName, entries, statusEl, logEl) {
   }
 
   const seconds = ((Date.now() - startTime) / 1000).toFixed(1);
+
+  // Atualiza a lista de meses disponíveis (usada pelo dashboard para os filtros)
+  try {
+    const monthsInBatch = [...new Set(entries.map(e => e.monthKey).filter(m => m && m !== 'Sem Data'))];
+    if (monthsInBatch.length) {
+      const metaDocId = collectionName === 'tempo_usina_entries' ? 'tempo_months' : 'performance_months';
+      await db.collection('meta').doc(metaDocId).set(
+        { months: firebase.firestore.FieldValue.arrayUnion(...monthsInBatch) },
+        { merge: true }
+      );
+    }
+  } catch (err) {
+    logEl.innerText += `⚠️ Não foi possível atualizar a lista de meses: ${err.message}\n`;
+  }
+
   logEl.innerText += `\n✅ Concluído em ${seconds}s — ${done} lotes ok, ${errors} com erro.\n`;
   logEl.scrollTop = logEl.scrollHeight;
   statusEl.innerText = errors > 0
@@ -316,6 +339,36 @@ document.getElementById('file-tempo').addEventListener('change', e => {
   handleImport(file, 'status-tempo', 'log-tempo');
   e.target.value = '';
 });
+
+async function rebuildMonthsIndex() {
+  const statusEl = document.getElementById('status-rebuild');
+  const logEl = document.getElementById('log-rebuild');
+  logEl.style.display = 'block';
+  logEl.innerText = '';
+  statusEl.innerText = '⏳ Lendo coleção performance_entries (pode levar um tempo)...';
+  try {
+    const perfSnap = await db.collection('performance_entries').get();
+    const perfMonths = new Set();
+    perfSnap.forEach(doc => { const m = doc.data().monthKey; if (m && m !== 'Sem Data') perfMonths.add(m); });
+    logEl.innerText += `📦 Performance: ${perfSnap.size} registros, ${perfMonths.size} meses encontrados.\n`;
+
+    statusEl.innerText = '⏳ Lendo coleção tempo_usina_entries...';
+    const tempoSnap = await db.collection('tempo_usina_entries').get();
+    const tempoMonths = new Set();
+    tempoSnap.forEach(doc => { const m = doc.data().monthKey; if (m && m !== 'Sem Data') tempoMonths.add(m); });
+    logEl.innerText += `⏱️ Tempo na Usina: ${tempoSnap.size} registros, ${tempoMonths.size} meses encontrados.\n`;
+
+    statusEl.innerText = '⏳ Gravando índice...';
+    await db.collection('meta').doc('performance_months').set({ months: Array.from(perfMonths) });
+    await db.collection('meta').doc('tempo_months').set({ months: Array.from(tempoMonths) });
+
+    logEl.innerText += `\n✅ Índice reconstruído com sucesso. Pode recarregar o dashboard normalmente agora.\n`;
+    statusEl.innerText = '✅ Concluído.';
+  } catch (err) {
+    statusEl.innerText = '❌ Erro: ' + err.message;
+    logEl.innerText += `❌ ${err.message}\n`;
+  }
+}
 </script>
 </body>
 </html>
