@@ -180,6 +180,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
       <span id="theme-label">Tema Claro</span>
     </button>
     <button class="btn" onclick="exportCurrent()">Exportar Excel</button>
+    <button class="btn" onclick="exportPageAsPNG()">🖼️ Exportar Página</button>
     <button class="btn btn-primary" id="btn-update-base" style="display:none" onclick="showUploadScreen()">Atualizar Base</button>
     <button class="btn" id="btn-logout" style="display:none" onclick="logoutUser()">Sair</button>
   </div>
@@ -322,16 +323,16 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
       <div class="chart-card chart-clickable">
         <div class="chart-title">Ranking de Motoristas por Transportadora (CPFs Únicos)</div>
         <div class="chart-card-hint">Clique em uma barra para filtrar a transportadora</div>
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-drivers-rank', 'ranking_motoristas.png', 'Ranking de Motoristas por Transportadora (CPFs Únicos)')" title="Exportar imagem">⬇</button>
         <div class="chart-container-main">
-          <button class="chart-export-btn" onclick="exportChartAsPNG('chart-drivers-rank', 'ranking_motoristas.png')" title="Exportar imagem">⬇</button>
           <canvas id="chart-drivers-rank"></canvas>
         </div>
       </div>
       <div class="chart-card chart-clickable">
         <div class="chart-title">Distribuição por Material</div>
         <div class="chart-card-hint">Clique em uma fatia para filtrar o material</div>
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-materials', 'distribuicao_materiais.png', 'Distribuição por Material')" title="Exportar imagem">⬇</button>
         <div class="chart-container-main">
-          <button class="chart-export-btn" onclick="exportChartAsPNG('chart-materials', 'distribuicao_materiais.png')" title="Exportar imagem">⬇</button>
           <canvas id="chart-materials"></canvas>
         </div>
       </div>
@@ -341,16 +342,16 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
       <div class="chart-card chart-clickable" style="--kpi-color: var(--coral)">
         <div class="chart-title">Divergências por Transportadora</div>
         <div class="chart-card-hint">Clique em uma barra para filtrar a transportadora</div>
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-div', 'divergencias.png', 'Divergências por Transportadora')" title="Exportar imagem">⬇</button>
         <div class="chart-container-sub">
-          <button class="chart-export-btn" onclick="exportChartAsPNG('chart-div', 'divergencias.png')" title="Exportar imagem">⬇</button>
           <canvas id="chart-div"></canvas>
         </div>
       </div>
       <div class="chart-card chart-clickable">
         <div class="chart-title">Ranking de Placas (Viagens)</div>
         <div class="chart-card-hint">Clique em uma barra para ver o histórico da placa</div>
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-plates', 'ranking_placas.png', 'Ranking de Placas')" title="Exportar imagem">⬇</button>
         <div class="chart-container-sub">
-          <button class="chart-export-btn" onclick="exportChartAsPNG('chart-plates', 'ranking_placas.png')" title="Exportar imagem">⬇</button>
           <canvas id="chart-plates"></canvas>
         </div>
       </div>
@@ -358,9 +359,9 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
 
     <div class="charts-grid-main">
       <div class="chart-card" style="grid-column: 1 / -1;">
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-daily', 'evolucao_diaria.png', 'Evolução Diária')" title="Exportar imagem">⬇</button>
         <div class="chart-title" id="chart-daily-title">Viagens por Dia</div>
         <div class="chart-container-sub">
-          <button class="chart-export-btn" onclick="exportChartAsPNG('chart-daily', 'evolucao_diaria.png')" title="Exportar imagem">⬇</button>
           <canvas id="chart-daily"></canvas>
         </div>
       </div>
@@ -369,7 +370,10 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
     <div class="table-card" style="margin-bottom:24px;">
       <div class="table-header">
         <h3 style="font-family:var(--font-head); font-size:14px">Placas Ociosas</h3>
-        <span style="font-size:11px; color:var(--text-3)">Sem viagens há mais de <input type="number" id="idle-threshold" value="7" min="1" style="width:36px; background:var(--bg-3); border:1px solid var(--border); border-radius:4px; color:var(--text-1); padding:2px 4px; text-align:center;" onchange="applyFilters()"> dias (referência: última data com viagem no período filtrado)</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:11px; color:var(--text-3)">Sem viagens há mais de <input type="number" id="idle-threshold" value="7" min="1" style="width:36px; background:var(--bg-3); border:1px solid var(--border); border-radius:4px; color:var(--text-1); padding:2px 4px; text-align:center;" onchange="applyFilters()"> dias (referência: última data com viagem no período filtrado)</span>
+          <button class="btn" style="font-size:11px; padding:5px 10px;" onclick="exportIdleTableXLSX()">📥 Exportar XLSX</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -390,7 +394,10 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
     <div class="table-card">
       <div class="table-header">
         <h3 style="font-family:var(--font-head); font-size:14px">Performance Detalhada</h3>
-        <input type="text" id="table-search" placeholder="Pesquisar transportadora..." style="width:280px; background:var(--bg-3); color:var(--text-1); border:1px solid var(--border); border-radius:var(--radius); padding:6px 12px;" oninput="applyFilters()" />
+        <div style="display:flex; align-items:center; gap:10px;">
+          <input type="text" id="table-search" placeholder="Pesquisar transportadora..." style="width:240px; background:var(--bg-3); color:var(--text-1); border:1px solid var(--border); border-radius:var(--radius); padding:6px 12px;" oninput="applyFilters()" />
+          <button class="btn" style="font-size:11px; padding:5px 10px;" onclick="exportExcel()">📥 Exportar XLSX</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -508,16 +515,16 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
       <div class="chart-card chart-clickable">
         <div class="chart-title">Ranking de Transportadoras por Tempo Médio na Usina</div>
         <div class="chart-card-hint">Clique em uma barra para filtrar a transportadora</div>
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-carriers', 'ranking_transportadoras_tempo.png', 'Ranking de Transportadoras por Tempo Médio na Usina')" title="Exportar imagem">⬇</button>
         <div class="chart-container-main">
-          <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-carriers', 'ranking_transportadoras_tempo.png')" title="Exportar imagem">⬇</button>
           <canvas id="chart-tempo-carriers"></canvas>
         </div>
       </div>
       <div class="chart-card chart-clickable">
         <div class="chart-title">Distribuição por Material</div>
         <div class="chart-card-hint">Clique em uma fatia para filtrar o material</div>
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-materials', 'distribuicao_materiais_tempo.png', 'Distribuição por Material')" title="Exportar imagem">⬇</button>
         <div class="chart-container-main">
-          <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-materials', 'distribuicao_materiais_tempo.png')" title="Exportar imagem">⬇</button>
           <canvas id="chart-tempo-materials"></canvas>
         </div>
       </div>
@@ -527,15 +534,15 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
       <div class="chart-card chart-clickable">
         <div class="chart-title">Ranking de Placas por Tempo Médio na Usina</div>
         <div class="chart-card-hint">Clique em uma barra para ver o histórico da placa</div>
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-plates', 'ranking_placas_tempo.png', 'Ranking de Placas por Tempo Médio na Usina')" title="Exportar imagem">⬇</button>
         <div class="chart-container-sub">
-          <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-plates', 'ranking_placas_tempo.png')" title="Exportar imagem">⬇</button>
           <canvas id="chart-tempo-plates"></canvas>
         </div>
       </div>
       <div class="chart-card" style="--kpi-color: var(--amber)">
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-distribution', 'distribuicao_tempos.png', 'Distribuição de Tempos na Usina')" title="Exportar imagem">⬇</button>
         <div class="chart-title">Distribuição de Tempos na Usina</div>
         <div class="chart-container-sub">
-          <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-distribution', 'distribuicao_tempos.png')" title="Exportar imagem">⬇</button>
           <canvas id="chart-tempo-distribution"></canvas>
         </div>
       </div>
@@ -543,9 +550,9 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
 
     <div class="charts-grid-main">
       <div class="chart-card" style="grid-column: 1 / -1;">
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-daily', 'tempo_medio_diario.png', 'Tempo Médio na Usina por Dia')" title="Exportar imagem">⬇</button>
         <div class="chart-title" id="chart-tempo-daily-title">Tempo Médio na Usina por Dia</div>
         <div class="chart-container-sub">
-          <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-daily', 'tempo_medio_diario.png')" title="Exportar imagem">⬇</button>
           <canvas id="chart-tempo-daily"></canvas>
         </div>
       </div>
@@ -554,7 +561,10 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
     <div class="table-card" style="margin-bottom:24px;">
       <div class="table-header">
         <h3 style="font-family:var(--font-head); font-size:14px">Piores Tempos na Usina</h3>
-        <span style="font-size:11px; color:var(--text-3)">Tempo limite: <input type="number" id="tempo-threshold" value="2" min="0.5" step="0.5" style="width:42px; background:var(--bg-3); border:1px solid var(--border); border-radius:4px; color:var(--text-1); padding:2px 4px; text-align:center;" onchange="applyFiltersTempo()"> horas</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:11px; color:var(--text-3)">Tempo limite: <input type="number" id="tempo-threshold" value="2" min="0.5" step="0.5" style="width:42px; background:var(--bg-3); border:1px solid var(--border); border-radius:4px; color:var(--text-1); padding:2px 4px; text-align:center;" onchange="applyFiltersTempo()"> horas</span>
+          <button class="btn" style="font-size:11px; padding:5px 10px;" onclick="exportWorstTimesXLSX()">📥 Exportar XLSX</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -577,7 +587,10 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
     <div class="table-card">
       <div class="table-header">
         <h3 style="font-family:var(--font-head); font-size:14px">Performance Detalhada por Transportadora</h3>
-        <input type="text" id="table-search-tempo" placeholder="Pesquisar transportadora..." style="width:280px; background:var(--bg-3); color:var(--text-1); border:1px solid var(--border); border-radius:var(--radius); padding:6px 12px;" oninput="applyFiltersTempo()" />
+        <div style="display:flex; align-items:center; gap:10px;">
+          <input type="text" id="table-search-tempo" placeholder="Pesquisar transportadora..." style="width:240px; background:var(--bg-3); color:var(--text-1); border:1px solid var(--border); border-radius:var(--radius); padding:6px 12px;" oninput="applyFiltersTempo()" />
+          <button class="btn" style="font-size:11px; padding:5px 10px;" onclick="exportExcelTempo()">📥 Exportar XLSX</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -600,6 +613,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -617,17 +631,81 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-function exportChartAsPNG(canvasId, filename) {
+function exportIdleTableXLSX() {
+  if (!state.currentIdleData || !state.currentIdleData.length) return alert("Nenhuma placa ociosa para exportar.");
+  const dataToExport = state.currentIdleData.map(p => ({
+    "Placa": p.placa,
+    "Transportadora": p.carrier,
+    "Última Viagem": new Date(p.lastTs).toLocaleDateString('pt-BR'),
+    "Dias sem Viagem": p.daysIdle,
+    "Total Viagens": p.count
+  }));
+  const ws = XLSX.utils.json_to_sheet(dataToExport);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Placas Ociosas");
+  XLSX.writeFile(wb, "Placas_Ociosas.xlsx");
+}
+
+function exportWorstTimesXLSX() {
+  if (!stateTempo.currentWorstData || !stateTempo.currentWorstData.length) return alert("Nenhum registro para exportar.");
+  const dataToExport = stateTempo.currentWorstData.map(e => {
+    const carrierName = stateTempo.plateCarrierMap.get(e.placa) || 'Não Identificada';
+    return {
+      "Placa": e.placa,
+      "Transportadora": carrierName,
+      "Material": e.material,
+      "Entrada": e.entradaTs ? new Date(e.entradaTs).toLocaleString('pt-BR') : '',
+      "Saída": e.saidaTs ? new Date(e.saidaTs).toLocaleString('pt-BR') : '',
+      "Tempo na Usina": formatMinutes(e.tempoUsina),
+      "Tempo Entre Pesos": e.tempoEntrePesos !== null ? formatMinutes(e.tempoEntrePesos) : ''
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(dataToExport);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Piores Tempos");
+  XLSX.writeFile(wb, "Piores_Tempos_Usina.xlsx");
+}
+
+function exportPageAsPNG() {
+  const pageEl = document.getElementById(currentPage === 'tempo' ? 'page-tempo' : 'page-performance');
+  if (!pageEl) return;
+  showToast('Gerando imagem da página... isso pode levar alguns segundos.', 8000);
+  const bgColor = (getComputedStyle(document.body).getPropertyValue('--bg-0') || '#06080f').trim() || '#06080f';
+  html2canvas(pageEl, {
+    backgroundColor: bgColor,
+    scale: 2,
+    useCORS: true
+  }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = (currentPage === 'tempo' ? 'pagina_tempo_na_usina' : 'pagina_performance_transportadoras') + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('✅ Imagem da página gerada.');
+  }).catch(err => {
+    showToast('⚠️ Erro ao gerar imagem da página: ' + err.message, 6000);
+  });
+}
+
+function exportChartAsPNG(canvasId, filename, title) {
   const sourceCanvas = document.getElementById(canvasId);
   if (!sourceCanvas) return;
+  const dpr = window.devicePixelRatio || 1;
   const bgColor = (getComputedStyle(document.body).getPropertyValue('--bg-1') || '#0b0f1a').trim() || '#0b0f1a';
+  const textColor = (getComputedStyle(document.body).getPropertyValue('--text-1') || '#e8ecf5').trim() || '#e8ecf5';
+  const padding = title ? Math.round(50 * dpr) : 0;
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = sourceCanvas.width;
-  tempCanvas.height = sourceCanvas.height;
+  tempCanvas.height = sourceCanvas.height + padding;
   const ctx = tempCanvas.getContext('2d');
   ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-  ctx.drawImage(sourceCanvas, 0, 0);
+  if (title) {
+    ctx.fillStyle = textColor;
+    ctx.font = `600 ${Math.round(20 * dpr)}px -apple-system, Segoe UI, Roboto, sans-serif`;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(title, Math.round(20 * dpr), padding / 2);
+  }
+  ctx.drawImage(sourceCanvas, 0, padding);
   const link = document.createElement('a');
   link.download = filename;
   link.href = tempCanvas.toDataURL('image/png');
@@ -1286,8 +1364,10 @@ function renderIdleTable(plateStats, threshold) {
 
   if (idle.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-3)">Nenhuma placa ociosa encontrada no período filtrado.</td></tr>';
+    state.currentIdleData = [];
     return;
   }
+  state.currentIdleData = idle;
 
   idle.forEach(p => {
     const tr = document.createElement('tr');
@@ -1781,8 +1861,10 @@ function renderWorstTimesTable(filteredEntries, criticalThresholdMin) {
   const sorted = [...filteredEntries].sort((a,b) => b.tempoUsina - a.tempoUsina).slice(0, 25);
   if (sorted.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-3)">Nenhum registro encontrado no período filtrado.</td></tr>';
+    stateTempo.currentWorstData = [];
     return;
   }
+  stateTempo.currentWorstData = sorted;
   sorted.forEach(e => {
     const carrierName = stateTempo.plateCarrierMap.get(e.placa) || 'Não Identificada';
     const tr = document.createElement('tr');
