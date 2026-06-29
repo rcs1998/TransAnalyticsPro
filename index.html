@@ -660,6 +660,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -717,6 +718,11 @@ function exportPageAsPNG() {
   const pageEl = document.getElementById(currentPage === 'tempo' ? 'page-tempo' : 'page-performance');
   if (!pageEl) return;
   showToast('Gerando imagem da página... isso pode levar alguns segundos.', 8000);
+
+  const chartGroup = currentPage === 'tempo' ? chartsTempo : charts;
+  const instances = Object.values(chartGroup).filter(c => c);
+  instances.forEach(c => { c.options.plugins.datalabels = { ...c.options.plugins.datalabels, display: true }; c.update('none'); });
+
   const bgColor = (getComputedStyle(document.body).getPropertyValue('--bg-0') || '#06080f').trim() || '#06080f';
   html2canvas(pageEl, {
     backgroundColor: bgColor,
@@ -730,12 +736,28 @@ function exportPageAsPNG() {
     showToast('✅ Imagem da página gerada.');
   }).catch(err => {
     showToast('⚠️ Erro ao gerar imagem da página: ' + err.message, 6000);
+  }).finally(() => {
+    instances.forEach(c => { c.options.plugins.datalabels = { ...c.options.plugins.datalabels, display: false }; c.update('none'); });
   });
+}
+
+function findChartInstance(canvasId) {
+  for (const key in charts) { if (charts[key] && charts[key].canvas && charts[key].canvas.id === canvasId) return charts[key]; }
+  for (const key in chartsTempo) { if (chartsTempo[key] && chartsTempo[key].canvas && chartsTempo[key].canvas.id === canvasId) return chartsTempo[key]; }
+  return null;
 }
 
 function exportChartAsPNG(canvasId, filename, title) {
   const sourceCanvas = document.getElementById(canvasId);
   if (!sourceCanvas) return;
+  const chartInstance = findChartInstance(canvasId);
+
+  // ativa os rótulos numéricos só durante a exportação (fica limpo na tela)
+  if (chartInstance) {
+    chartInstance.options.plugins.datalabels = { ...chartInstance.options.plugins.datalabels, display: true };
+    chartInstance.update('none');
+  }
+
   const dpr = window.devicePixelRatio || 1;
   const bgColor = (getComputedStyle(document.body).getPropertyValue('--bg-1') || '#0b0f1a').trim() || '#0b0f1a';
   const textColor = (getComputedStyle(document.body).getPropertyValue('--text-1') || '#e8ecf5').trim() || '#e8ecf5';
@@ -757,6 +779,12 @@ function exportChartAsPNG(canvasId, filename, title) {
   link.download = filename;
   link.href = tempCanvas.toDataURL('image/png');
   link.click();
+
+  // volta ao normal (sem rótulos) na tela
+  if (chartInstance) {
+    chartInstance.options.plugins.datalabels = { ...chartInstance.options.plugins.datalabels, display: false };
+    chartInstance.update('none');
+  }
 }
 
 function showToast(msg, ms = 3500) {
@@ -978,6 +1006,20 @@ function switchPage(name) {
 }
 
 function exportCurrent() { if (currentPage === 'tempo') exportExcelTempo(); else exportExcel(); }
+
+if (window.ChartDataLabels) Chart.register(ChartDataLabels);
+Chart.defaults.set('plugins.datalabels', {
+  display: false,
+  color: '#fff',
+  font: { size: 10, weight: '700' },
+  textStrokeColor: 'rgba(0,0,0,0.55)',
+  textStrokeWidth: 3,
+  formatter: (value) => {
+    if (value === null || value === undefined || value === '') return '';
+    if (typeof value === 'number') return Number.isInteger(value) ? value : value.toFixed(1);
+    return value;
+  }
+});
 
 const COLORS = ['#00c8aa','#4895ef','#f0a500','#ff6b6b','#9b7fe8','#2ecc71','#f368e0','#48dbfb','#ff9f43','#a29bfe'];
 function getStableColors(labels, fullList) {
@@ -1840,7 +1882,7 @@ function renderChartsTempo(totals, filteredEntries) {
   if (chartsTempo.carriers) chartsTempo.carriers.destroy();
   chartsTempo.carriers = new Chart(document.getElementById('chart-tempo-carriers'), { type: 'bar', data: { labels: topCarriers.map(c => c.name.substring(0,15)), datasets: [{ label: 'Tempo Médio (min)', data: topCarriers.map(c => +(c.sum/c.count).toFixed(1)), backgroundColor: '#4895ef' }] }, options: { ...commonOptions, indexAxis: 'y',
     scales: { ...commonOptions.scales, x: { ...commonOptions.scales.x, ticks: { ...commonOptions.scales.x.ticks, callback: v => v + ' min' } } },
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } }, datalabels: { formatter: v => formatMinutes(v) } },
     onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
     onClick: (e, els) => { if (els.length) setCarrierFilterTempo(topCarriers[els[0].index].name); }
   } });
@@ -1857,7 +1899,7 @@ function renderChartsTempo(totals, filteredEntries) {
   if (chartsTempo.plates) chartsTempo.plates.destroy();
   chartsTempo.plates = new Chart(document.getElementById('chart-tempo-plates'), { type: 'bar', data: { labels: topPlates.map(p => p.placa), datasets: [{ data: topPlates.map(p => +(p.sum/p.count).toFixed(1)), backgroundColor: topPlates.map(p => p.placa === stateTempo.selectedPlate ? '#00c8aa' : '#9b7fe8') }] }, options: { ...commonOptions,
     scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, ticks: { ...commonOptions.scales.y.ticks, callback: v => v + ' min' } } },
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } }, datalabels: { formatter: v => formatMinutes(v) } },
     onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
     onClick: (e, els) => { if (els.length) setPlateFilterTempo(topPlates[els[0].index].placa); }
   } });
@@ -1872,7 +1914,7 @@ function renderChartsTempo(totals, filteredEntries) {
 
   const dayKeys = Object.keys(totals.dailyAgg).sort();
   if (chartsTempo.daily) chartsTempo.daily.destroy();
-  chartsTempo.daily = new Chart(document.getElementById('chart-tempo-daily'), { type: 'line', data: { labels: dayKeys.map(k => { const [y,m,d] = k.split('-'); return `${d}/${m}`; }), datasets: [{ label: 'Tempo Médio (min)', data: dayKeys.map(k => +(totals.dailyAgg[k].sum/totals.dailyAgg[k].count).toFixed(1)), borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', fill: true, tension: 0.25, pointRadius: dayKeys.length > 60 ? 0 : 3 }] }, options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, ticks: { ...commonOptions.scales.y.ticks, callback: v => v + ' min' } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw), title: (items) => { const idx = items[0].dataIndex; return dayKeys[idx]; } } } } } });
+  chartsTempo.daily = new Chart(document.getElementById('chart-tempo-daily'), { type: 'line', data: { labels: dayKeys.map(k => { const [y,m,d] = k.split('-'); return `${d}/${m}`; }), datasets: [{ label: 'Tempo Médio (min)', data: dayKeys.map(k => +(totals.dailyAgg[k].sum/totals.dailyAgg[k].count).toFixed(1)), borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', fill: true, tension: 0.25, pointRadius: dayKeys.length > 60 ? 0 : 3 }] }, options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, ticks: { ...commonOptions.scales.y.ticks, callback: v => v + ' min' } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw), title: (items) => { const idx = items[0].dataIndex; return dayKeys[idx]; } } }, datalabels: { formatter: v => formatMinutes(v), align: 'top', anchor: 'end' } } } });
 }
 
 function renderCarrierTableTempo() {
