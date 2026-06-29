@@ -562,7 +562,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
       <div class="chart-card chart-clickable">
         <div class="chart-title">Ranking de Transportadoras por Tempo Médio na Usina</div>
         <div class="chart-card-hint">Clique em uma barra para filtrar a transportadora</div>
-        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-carriers', 'ranking_transportadoras_tempo.png', 'Ranking de Transportadoras por Tempo Médio na Usina')" title="Exportar imagem">⬇</button>
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-carriers', 'ranking_transportadoras_tempo.png', 'Ranking de Transportadoras por Tempo Médio na Usina', formatMinutes)" title="Exportar imagem">⬇</button>
         <div class="chart-container-main">
           <canvas id="chart-tempo-carriers"></canvas>
         </div>
@@ -581,7 +581,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
       <div class="chart-card chart-clickable">
         <div class="chart-title">Ranking de Placas por Tempo Médio na Usina</div>
         <div class="chart-card-hint">Clique em uma barra para ver o histórico da placa</div>
-        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-plates', 'ranking_placas_tempo.png', 'Ranking de Placas por Tempo Médio na Usina')" title="Exportar imagem">⬇</button>
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-plates', 'ranking_placas_tempo.png', 'Ranking de Placas por Tempo Médio na Usina', formatMinutes)" title="Exportar imagem">⬇</button>
         <div class="chart-container-sub">
           <canvas id="chart-tempo-plates"></canvas>
         </div>
@@ -597,7 +597,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
 
     <div class="charts-grid-main">
       <div class="chart-card" style="grid-column: 1 / -1;">
-        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-daily', 'tempo_medio_diario.png', 'Tempo Médio na Usina por Dia')" title="Exportar imagem">⬇</button>
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-daily', 'tempo_medio_diario.png', 'Tempo Médio na Usina por Dia', formatMinutes)" title="Exportar imagem">⬇</button>
         <div class="chart-title" id="chart-tempo-daily-title">Tempo Médio na Usina por Dia</div>
         <div class="chart-container-sub">
           <canvas id="chart-tempo-daily"></canvas>
@@ -660,7 +660,6 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -721,7 +720,13 @@ function exportPageAsPNG() {
 
   const chartGroup = currentPage === 'tempo' ? chartsTempo : charts;
   const instances = Object.values(chartGroup).filter(c => c);
-  instances.forEach(c => { c.options.plugins.datalabels = { ...c.options.plugins.datalabels, display: true }; c.update('none'); });
+  instances.forEach(c => {
+    c.config._showDataLabels = true;
+    if (c.canvas && (c.canvas.id === 'chart-tempo-carriers' || c.canvas.id === 'chart-tempo-plates' || c.canvas.id === 'chart-tempo-daily')) {
+      c.config._dataLabelFormatter = formatMinutes;
+    }
+    c.update('none');
+  });
 
   const bgColor = (getComputedStyle(document.body).getPropertyValue('--bg-0') || '#06080f').trim() || '#06080f';
   html2canvas(pageEl, {
@@ -737,7 +742,7 @@ function exportPageAsPNG() {
   }).catch(err => {
     showToast('⚠️ Erro ao gerar imagem da página: ' + err.message, 6000);
   }).finally(() => {
-    instances.forEach(c => { c.options.plugins.datalabels = { ...c.options.plugins.datalabels, display: false }; c.update('none'); });
+    instances.forEach(c => { c.config._showDataLabels = false; c.update('none'); });
   });
 }
 
@@ -747,7 +752,7 @@ function findChartInstance(canvasId) {
   return null;
 }
 
-function exportChartAsPNG(canvasId, filename, title) {
+function exportChartAsPNG(canvasId, filename, title, formatter) {
   const sourceCanvas = document.getElementById(canvasId);
   if (!sourceCanvas) return;
   const chartInstance = findChartInstance(canvasId);
@@ -755,7 +760,8 @@ function exportChartAsPNG(canvasId, filename, title) {
   // ativa os rótulos numéricos só durante a exportação (fica limpo na tela)
   if (chartInstance) {
     try {
-      chartInstance.options.plugins.datalabels = { ...chartInstance.options.plugins.datalabels, display: true };
+      chartInstance.config._showDataLabels = true;
+      if (formatter) chartInstance.config._dataLabelFormatter = formatter;
       chartInstance.update('none');
     } catch (err) { console.error('Datalabels (export):', err); }
   }
@@ -785,7 +791,7 @@ function exportChartAsPNG(canvasId, filename, title) {
   // volta ao normal (sem rótulos) na tela
   if (chartInstance) {
     try {
-      chartInstance.options.plugins.datalabels = { ...chartInstance.options.plugins.datalabels, display: false };
+      chartInstance.config._showDataLabels = false;
       chartInstance.update('none');
     } catch (err) { console.error('Datalabels (revert):', err); }
   }
@@ -870,7 +876,7 @@ async function saveEntriesToFirestore(collectionName, entries, progressEl) {
     if (monthsInBatch.length) {
       const metaDocId = collectionName === 'tempo_usina_entries' ? 'tempo_months' : 'performance_months';
       await db.collection('meta').doc(metaDocId).set(
-        { months: firebase.firestore.FieldValue.arrayUnion(...monthsInBatch) },
+        { months: firebase.firestore.FieldValue.arrayUnion(...monthsInBatch), lastUpdated: Date.now() },
         { merge: true }
       );
     }
@@ -881,6 +887,27 @@ async function saveEntriesToFirestore(collectionName, entries, progressEl) {
   }
 }
 
+/* ===== cache local (localStorage) para economizar leituras do Firestore ===== */
+const CACHE_PREFIX = 'tap_cache_';
+
+function cacheGet(key) {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) { return null; }
+}
+function cacheSet(key, value) {
+  try { localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(value)); }
+  catch (err) { /* quota cheia ou indisponível — segue sem cache, sem quebrar nada */ }
+}
+function cacheClear(prefix) {
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith(CACHE_PREFIX + prefix))
+      .forEach(k => localStorage.removeItem(k));
+  } catch (err) {}
+}
+
 function monthLabel(m) {
   const parts = m.split('-');
   return `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(parts[1])-1]}/${parts[0]}`;
@@ -888,9 +915,19 @@ function monthLabel(m) {
 
 async function ensureMonthLoadedPerf(monthKey) {
   if (state.loadedMonths.has(monthKey)) return;
-  const snap = await db.collection('performance_entries').where('monthKey', '==', monthKey).get();
-  snap.forEach(doc => {
-    const e = doc.data();
+
+  const cached = cacheGet('perf_month_' + monthKey);
+  let entries;
+  if (cached) {
+    entries = cached;
+  } else {
+    const snap = await db.collection('performance_entries').where('monthKey', '==', monthKey).get();
+    entries = [];
+    snap.forEach(doc => entries.push(doc.data()));
+    cacheSet('perf_month_' + monthKey, entries);
+  }
+
+  entries.forEach(e => {
     if (!state.materials.includes(e.material)) state.materials.push(e.material);
     if (!state.carriers.has(e.carrierName)) state.carriers.set(e.carrierName, { name: e.carrierName, allEntries: [] });
     state.carriers.get(e.carrierName).allEntries.push({ cpf: e.cpf, placa: e.placa, weight: e.weight, material: e.material, isDiv: e.isDiv, monthKey: e.monthKey, dateTs: e.dateTs });
@@ -901,9 +938,19 @@ async function ensureMonthLoadedPerf(monthKey) {
 
 async function ensureMonthLoadedTempo(monthKey) {
   if (stateTempo.loadedMonths.has(monthKey)) return;
-  const snap = await db.collection('tempo_usina_entries').where('monthKey', '==', monthKey).get();
-  snap.forEach(doc => {
-    const e = doc.data();
+
+  const cached = cacheGet('tempo_month_' + monthKey);
+  let entries;
+  if (cached) {
+    entries = cached;
+  } else {
+    const snap = await db.collection('tempo_usina_entries').where('monthKey', '==', monthKey).get();
+    entries = [];
+    snap.forEach(doc => entries.push(doc.data()));
+    cacheSet('tempo_month_' + monthKey, entries);
+  }
+
+  entries.forEach(e => {
     stateTempo.allEntries.push(e);
     if (!stateTempo.materials.includes(e.material)) stateTempo.materials.push(e.material);
   });
@@ -921,6 +968,14 @@ async function loadFromFirestore() {
     ]);
     state.months = perfMetaDoc.exists ? (perfMetaDoc.data().months || []).slice().sort() : [];
     stateTempo.months = tempoMetaDoc.exists ? (tempoMetaDoc.data().months || []).slice().sort() : [];
+
+    // só invalida o cache local se o Firebase tiver dado mais novo que o que está salvo no navegador
+    const perfLastUpdated = perfMetaDoc.exists ? (perfMetaDoc.data().lastUpdated || 0) : 0;
+    const tempoLastUpdated = tempoMetaDoc.exists ? (tempoMetaDoc.data().lastUpdated || 0) : 0;
+    const cachedStamps = cacheGet('lastUpdated') || { perf: 0, tempo: 0 };
+    if (perfLastUpdated !== cachedStamps.perf) cacheClear('perf_month_');
+    if (tempoLastUpdated !== cachedStamps.tempo) cacheClear('tempo_month_');
+    cacheSet('lastUpdated', { perf: perfLastUpdated, tempo: tempoLastUpdated });
 
     state.carriers = new Map(); state.materials = []; state.loadedMonths = new Set();
     stateTempo.allEntries = []; stateTempo.materials = []; stateTempo.loadedMonths = new Set();
@@ -1012,19 +1067,43 @@ function switchPage(name) {
 function exportCurrent() { if (currentPage === 'tempo') exportExcelTempo(); else exportExcel(); }
 
 try {
-  if (window.ChartDataLabels) Chart.register(ChartDataLabels);
-  Chart.defaults.set('plugins.datalabels', {
-    display: false,
-    color: '#fff',
-    font: { size: 10, weight: '700' },
-    textStrokeColor: 'rgba(0,0,0,0.55)',
-    textStrokeWidth: 3,
-    formatter: (value) => {
-      if (value === null || value === undefined || value === '') return '';
-      if (typeof value === 'number') return Number.isInteger(value) ? value : value.toFixed(1);
-      return value;
+  const customDataLabelsPlugin = {
+    id: 'customDataLabels',
+    afterDatasetsDraw(chart) {
+      if (!chart.config._showDataLabels) return;
+      const ctx = chart.ctx;
+      const formatter = chart.config._dataLabelFormatter || (v => (v === null || v === undefined || v === '') ? '' : (typeof v === 'number' ? (Number.isInteger(v) ? String(v) : v.toFixed(1)) : String(v)));
+      chart.data.datasets.forEach((dataset, datasetIndex) => {
+        const meta = chart.getDatasetMeta(datasetIndex);
+        if (meta.hidden) return;
+        meta.data.forEach((element, index) => {
+          const rawValue = dataset.data[index];
+          if (rawValue === null || rawValue === undefined) return;
+          const text = formatter(rawValue);
+          if (text === '') return;
+          const pos = element.tooltipPosition ? element.tooltipPosition() : { x: element.x, y: element.y };
+          let x = pos.x, y = pos.y;
+          if (chart.config.type === 'bar') {
+            if (chart.options.indexAxis === 'y') x += 16; else y -= 10;
+          } else if (chart.config.type === 'line') {
+            y -= 12;
+          }
+          ctx.save();
+          ctx.font = '700 11px -apple-system, Segoe UI, Roboto, sans-serif';
+          ctx.fillStyle = '#fff';
+          ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+          ctx.lineWidth = 3;
+          ctx.lineJoin = 'round';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.strokeText(text, x, y);
+          ctx.fillText(text, x, y);
+          ctx.restore();
+        });
+      });
     }
-  });
+  };
+  Chart.register(customDataLabelsPlugin);
 } catch (err) {
   console.error('Falha ao registrar plugin de rótulos:', err);
 }
@@ -1890,7 +1969,7 @@ function renderChartsTempo(totals, filteredEntries) {
   if (chartsTempo.carriers) chartsTempo.carriers.destroy();
   chartsTempo.carriers = new Chart(document.getElementById('chart-tempo-carriers'), { type: 'bar', data: { labels: topCarriers.map(c => c.name.substring(0,15)), datasets: [{ label: 'Tempo Médio (min)', data: topCarriers.map(c => +(c.sum/c.count).toFixed(1)), backgroundColor: '#4895ef' }] }, options: { ...commonOptions, indexAxis: 'y',
     scales: { ...commonOptions.scales, x: { ...commonOptions.scales.x, ticks: { ...commonOptions.scales.x.ticks, callback: v => v + ' min' } } },
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } }, datalabels: { formatter: v => formatMinutes(v) } },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } },
     onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
     onClick: (e, els) => { if (els.length) setCarrierFilterTempo(topCarriers[els[0].index].name); }
   } });
@@ -1907,7 +1986,7 @@ function renderChartsTempo(totals, filteredEntries) {
   if (chartsTempo.plates) chartsTempo.plates.destroy();
   chartsTempo.plates = new Chart(document.getElementById('chart-tempo-plates'), { type: 'bar', data: { labels: topPlates.map(p => p.placa), datasets: [{ data: topPlates.map(p => +(p.sum/p.count).toFixed(1)), backgroundColor: topPlates.map(p => p.placa === stateTempo.selectedPlate ? '#00c8aa' : '#9b7fe8') }] }, options: { ...commonOptions,
     scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, ticks: { ...commonOptions.scales.y.ticks, callback: v => v + ' min' } } },
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } }, datalabels: { formatter: v => formatMinutes(v) } },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } },
     onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
     onClick: (e, els) => { if (els.length) setPlateFilterTempo(topPlates[els[0].index].placa); }
   } });
@@ -1922,7 +2001,7 @@ function renderChartsTempo(totals, filteredEntries) {
 
   const dayKeys = Object.keys(totals.dailyAgg).sort();
   if (chartsTempo.daily) chartsTempo.daily.destroy();
-  chartsTempo.daily = new Chart(document.getElementById('chart-tempo-daily'), { type: 'line', data: { labels: dayKeys.map(k => { const [y,m,d] = k.split('-'); return `${d}/${m}`; }), datasets: [{ label: 'Tempo Médio (min)', data: dayKeys.map(k => +(totals.dailyAgg[k].sum/totals.dailyAgg[k].count).toFixed(1)), borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', fill: true, tension: 0.25, pointRadius: dayKeys.length > 60 ? 0 : 3 }] }, options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, ticks: { ...commonOptions.scales.y.ticks, callback: v => v + ' min' } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw), title: (items) => { const idx = items[0].dataIndex; return dayKeys[idx]; } } }, datalabels: { formatter: v => formatMinutes(v), align: 'top', anchor: 'end' } } } });
+  chartsTempo.daily = new Chart(document.getElementById('chart-tempo-daily'), { type: 'line', data: { labels: dayKeys.map(k => { const [y,m,d] = k.split('-'); return `${d}/${m}`; }), datasets: [{ label: 'Tempo Médio (min)', data: dayKeys.map(k => +(totals.dailyAgg[k].sum/totals.dailyAgg[k].count).toFixed(1)), borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', fill: true, tension: 0.25, pointRadius: dayKeys.length > 60 ? 0 : 3 }] }, options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, ticks: { ...commonOptions.scales.y.ticks, callback: v => v + ' min' } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw), title: (items) => { const idx = items[0].dataIndex; return dayKeys[idx]; } } } } } });
 }
 
 function renderCarrierTableTempo() {
