@@ -754,8 +754,10 @@ function exportChartAsPNG(canvasId, filename, title) {
 
   // ativa os rótulos numéricos só durante a exportação (fica limpo na tela)
   if (chartInstance) {
-    chartInstance.options.plugins.datalabels = { ...chartInstance.options.plugins.datalabels, display: true };
-    chartInstance.update('none');
+    try {
+      chartInstance.options.plugins.datalabels = { ...chartInstance.options.plugins.datalabels, display: true };
+      chartInstance.update('none');
+    } catch (err) { console.error('Datalabels (export):', err); }
   }
 
   const dpr = window.devicePixelRatio || 1;
@@ -782,8 +784,10 @@ function exportChartAsPNG(canvasId, filename, title) {
 
   // volta ao normal (sem rótulos) na tela
   if (chartInstance) {
-    chartInstance.options.plugins.datalabels = { ...chartInstance.options.plugins.datalabels, display: false };
-    chartInstance.update('none');
+    try {
+      chartInstance.options.plugins.datalabels = { ...chartInstance.options.plugins.datalabels, display: false };
+      chartInstance.update('none');
+    } catch (err) { console.error('Datalabels (revert):', err); }
   }
 }
 
@@ -1007,19 +1011,23 @@ function switchPage(name) {
 
 function exportCurrent() { if (currentPage === 'tempo') exportExcelTempo(); else exportExcel(); }
 
-if (window.ChartDataLabels) Chart.register(ChartDataLabels);
-Chart.defaults.set('plugins.datalabels', {
-  display: false,
-  color: '#fff',
-  font: { size: 10, weight: '700' },
-  textStrokeColor: 'rgba(0,0,0,0.55)',
-  textStrokeWidth: 3,
-  formatter: (value) => {
-    if (value === null || value === undefined || value === '') return '';
-    if (typeof value === 'number') return Number.isInteger(value) ? value : value.toFixed(1);
-    return value;
-  }
-});
+try {
+  if (window.ChartDataLabels) Chart.register(ChartDataLabels);
+  Chart.defaults.set('plugins.datalabels', {
+    display: false,
+    color: '#fff',
+    font: { size: 10, weight: '700' },
+    textStrokeColor: 'rgba(0,0,0,0.55)',
+    textStrokeWidth: 3,
+    formatter: (value) => {
+      if (value === null || value === undefined || value === '') return '';
+      if (typeof value === 'number') return Number.isInteger(value) ? value : value.toFixed(1);
+      return value;
+    }
+  });
+} catch (err) {
+  console.error('Falha ao registrar plugin de rótulos:', err);
+}
 
 const COLORS = ['#00c8aa','#4895ef','#f0a500','#ff6b6b','#9b7fe8','#2ecc71','#f368e0','#48dbfb','#ff9f43','#a29bfe'];
 function getStableColors(labels, fullList) {
@@ -1496,7 +1504,7 @@ function renderCharts(data, totals, dailyMap) {
   // 2. Distribuição por Material — clicável
   const matL = Object.keys(totals.materials).sort((a,b) => totals.materials[b] - totals.materials[a]).slice(0, 5);
   if(charts.materials) charts.materials.destroy();
-  charts.materials = new Chart(document.getElementById('chart-materials'), { type: 'doughnut', data: { labels: matL, datasets: [{ data: matL.map(l => totals.materials[l]), backgroundColor: getStableColors(matL, state.materials), borderWidth: 0 }] }, options: { ...commonOptions, cutout: '60%', plugins: { legend: { display: true, position: 'right', labels: { color: '#9aa5b8', font: { size: 9 } } } },
+  charts.materials = new Chart(document.getElementById('chart-materials'), { type: 'doughnut', data: { labels: matL, datasets: [{ data: matL.map(l => totals.materials[l]), backgroundColor: getStableColors(matL, state.materials), borderWidth: 0 }] }, options: { ...commonOptions, cutout: '60%', scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: true, position: 'right', labels: { color: '#9aa5b8', font: { size: 9 } } } },
     onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
     onClick: (e, els) => { if (els.length) toggleMaterialFilter(matL[els[0].index]); }
   } });
@@ -1889,7 +1897,7 @@ function renderChartsTempo(totals, filteredEntries) {
 
   const matL = Object.keys(totals.materialCount).sort((a,b) => totals.materialCount[b] - totals.materialCount[a]).slice(0, 6);
   if (chartsTempo.materials) chartsTempo.materials.destroy();
-  chartsTempo.materials = new Chart(document.getElementById('chart-tempo-materials'), { type: 'doughnut', data: { labels: matL, datasets: [{ data: matL.map(l => totals.materialCount[l]), backgroundColor: getStableColors(matL, stateTempo.materials), borderWidth: 0 }] }, options: { ...commonOptions, cutout: '60%', plugins: { legend: { display: true, position: 'right', labels: { color: '#9aa5b8', font: { size: 9 } } } },
+  chartsTempo.materials = new Chart(document.getElementById('chart-tempo-materials'), { type: 'doughnut', data: { labels: matL, datasets: [{ data: matL.map(l => totals.materialCount[l]), backgroundColor: getStableColors(matL, stateTempo.materials), borderWidth: 0 }] }, options: { ...commonOptions, cutout: '60%', scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: true, position: 'right', labels: { color: '#9aa5b8', font: { size: 9 } } } },
     onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
     onClick: (e, els) => { if (els.length) toggleMaterialFilterTempo(matL[els[0].index]); }
   } });
