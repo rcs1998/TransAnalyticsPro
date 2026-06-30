@@ -875,10 +875,18 @@ async function saveEntriesToFirestore(collectionName, entries, progressEl) {
     const monthsInBatch = [...new Set(entries.map(e => e.monthKey).filter(m => m && m !== 'Sem Data'))];
     if (monthsInBatch.length) {
       const metaDocId = collectionName === 'tempo_usina_entries' ? 'tempo_months' : 'performance_months';
-      await db.collection('meta').doc(metaDocId).set(
-        { months: firebase.firestore.FieldValue.arrayUnion(...monthsInBatch), lastUpdated: Date.now() },
-        { merge: true }
-      );
+      const validDates = entries.map(e => e.dateTs || e.entradaTs).filter(d => d && d > 0);
+      const lastDateTs = validDates.length ? Math.max(...validDates) : null;
+
+      // busca o lastDate já salvo e mantém o maior
+      const currentMeta = await db.collection('meta').doc(metaDocId).get();
+      const currentLastDate = currentMeta.exists ? (currentMeta.data().lastDate || 0) : 0;
+      const metaPayload = {
+        months: firebase.firestore.FieldValue.arrayUnion(...monthsInBatch),
+        lastUpdated: Date.now(),
+        lastDate: lastDateTs ? Math.max(lastDateTs, currentLastDate) : currentLastDate
+      };
+      await db.collection('meta').doc(metaDocId).set(metaPayload, { merge: true });
     }
     showToast(`✅ ${saved} registros sincronizados com o Firebase (${collectionName === 'tempo_usina_entries' ? 'Tempo na Usina' : 'Performance'}).`);
   } catch (err) {
@@ -968,6 +976,8 @@ async function loadFromFirestore() {
     ]);
     state.months = perfMetaDoc.exists ? (perfMetaDoc.data().months || []).slice().sort() : [];
     stateTempo.months = tempoMetaDoc.exists ? (tempoMetaDoc.data().months || []).slice().sort() : [];
+    const perfLastDate = perfMetaDoc.exists ? (perfMetaDoc.data().lastDate || null) : null;
+    const tempoLastDate = tempoMetaDoc.exists ? (tempoMetaDoc.data().lastDate || null) : null;
 
     // só invalida o cache local se o Firebase tiver dado mais novo que o que está salvo no navegador
     const perfLastUpdated = perfMetaDoc.exists ? (perfMetaDoc.data().lastUpdated || 0) : 0;
@@ -991,7 +1001,7 @@ async function loadFromFirestore() {
     applyFilters();
     populateFiltersTempo();
     applyFiltersTempo();
-    updateDataScopeBanner(latestPerfMonth, latestTempoMonth);
+    updateDataScopeBanner(latestPerfMonth, latestTempoMonth, perfLastDate, tempoLastDate);
 
     if (state.months.length || stateTempo.months.length) {
       document.getElementById('upload-screen').style.display = 'none';
@@ -1019,11 +1029,26 @@ async function loadAllMonths() {
   showToast('✅ Todos os meses disponíveis foram carregados.');
 }
 
-function updateDataScopeBanner(latestPerfMonth, latestTempoMonth) {
+function fmtDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function updateDataScopeBanner(latestPerfMonth, latestTempoMonth, perfLastDate, tempoLastDate) {
   const banner = document.getElementById('data-scope-banner');
-  if (!banner) return;
   const lbl = m => m ? monthLabel(m) : '--';
-  banner.innerHTML = `🗓️ Exibindo o <strong>mês mais recente</strong> por padrão (Performance: <strong>${lbl(latestPerfMonth)}</strong> · Tempo na Usina: <strong>${lbl(latestTempoMonth)}</strong>). Marque outros meses no filtro "Mês" para carregá-los, ou <a onclick="loadAllMonths()" style="color:var(--accent); cursor:pointer; text-decoration:underline;">carregue todos de uma vez</a>.`;
+  if (banner) {
+    banner.innerHTML = `🗓️ Exibindo o <strong>mês mais recente</strong> (Performance: <strong>${lbl(latestPerfMonth)}</strong> · Tempo na Usina: <strong>${lbl(latestTempoMonth)}</strong>). Marque outros meses no filtro para carregá-los, ou <a onclick="loadAllMonths()" style="color:var(--accent); cursor:pointer; text-decoration:underline;">carregue todos de uma vez</a>.`;
+  }
+  // atualiza o indicador no header com a última data de cada base
+  const fileInfo = document.getElementById('header-filename');
+  if (fileInfo) {
+    const perfStr = perfLastDate ? `Performance até <strong>${fmtDate(perfLastDate)}</strong>` : '';
+    const tempoStr = tempoLastDate ? `Tempo na Usina até <strong>${fmtDate(tempoLastDate)}</strong>` : '';
+    const parts = [perfStr, tempoStr].filter(Boolean).join(' &nbsp;·&nbsp; ');
+    fileInfo.innerHTML = parts || 'Base sincronizada';
+  }
 }
 
 let state = {
