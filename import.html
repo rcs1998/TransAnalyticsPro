@@ -280,7 +280,10 @@ async function saveEntriesFast(collectionName, entries, statusEl, logEl) {
     const monthsInBatch = [...new Set(entries.map(e => e.monthKey).filter(m => m && m !== 'Sem Data'))];
     if (monthsInBatch.length) {
       const metaDocId = collectionName === 'tempo_usina_entries' ? 'tempo_months' : 'performance_months';
-      const validDates = entries.map(e => e.dateTs || e.entradaTs).filter(d => d && d > 0);
+      // Para tempo na usina: sempre usa data de ENTRADA (não saída — veículo pode sair no dia seguinte)
+      const validDates = collectionName === 'tempo_usina_entries'
+        ? entries.map(e => e.entradaTs || e.dateTs).filter(d => d && d > 0)
+        : entries.map(e => e.dateTs).filter(d => d && d > 0);
       const lastDateTs = validDates.length ? Math.max(...validDates) : null;
       const currentMeta = await db.collection('meta').doc(metaDocId).get();
       const currentLastDate = currentMeta.exists ? (currentMeta.data().lastDate || 0) : 0;
@@ -366,7 +369,8 @@ async function rebuildMonthsIndex() {
 
     statusEl.innerText = '⏳ Gravando índice...';
     const perfDates = []; perfSnap.forEach(doc => { const d = doc.data().dateTs; if (d) perfDates.push(d); });
-    const tempoDates = []; tempoSnap.forEach(doc => { const d = doc.data().dateTs || doc.data().entradaTs; if (d) tempoDates.push(d); });
+    // Para tempo na usina: sempre data de ENTRADA (não saída)
+    const tempoDates = []; tempoSnap.forEach(doc => { const d = doc.data().entradaTs || doc.data().dateTs; if (d) tempoDates.push(d); });
     await db.collection('meta').doc('performance_months').set({ months: Array.from(perfMonths), lastUpdated: Date.now(), lastDate: perfDates.length ? Math.max(...perfDates) : null });
     await db.collection('meta').doc('tempo_months').set({ months: Array.from(tempoMonths), lastUpdated: Date.now(), lastDate: tempoDates.length ? Math.max(...tempoDates) : null });
 
