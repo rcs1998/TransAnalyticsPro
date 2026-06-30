@@ -880,7 +880,10 @@ async function saveEntriesToFirestore(collectionName, entries, progressEl) {
     const monthsInBatch = [...new Set(entries.map(e => e.monthKey).filter(m => m && m !== 'Sem Data'))];
     if (monthsInBatch.length) {
       const metaDocId = collectionName === 'tempo_usina_entries' ? 'tempo_months' : 'performance_months';
-      const validDates = entries.map(e => e.dateTs || e.entradaTs).filter(d => d && d > 0);
+      // Para tempo na usina: sempre usa data de ENTRADA (não saída — veículo pode sair no dia seguinte)
+      const validDates = collectionName === 'tempo_usina_entries'
+        ? entries.map(e => e.entradaTs || e.dateTs).filter(d => d && d > 0)
+        : entries.map(e => e.dateTs).filter(d => d && d > 0);
       const lastDateTs = validDates.length ? Math.max(...validDates) : null;
 
       // busca o lastDate já salvo e mantém o maior
