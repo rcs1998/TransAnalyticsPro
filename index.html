@@ -1099,25 +1099,54 @@ function switchPage(name) {
 
 function resizeAllCharts() {
   [...Object.values(charts), ...Object.values(chartsTempo)].forEach(c => {
-    if (c && typeof c.resize === 'function') c.resize();
+    if (c && typeof c.resize === 'function') {
+      try { c.resize(); } catch (err) {}
+    }
   });
 }
 
-// ResizeObserver: detecta mudança de tamanho dos containers (inclui zoom do browser)
+// Detecta mudança de zoom do browser via devicePixelRatio e re-renderiza os gráficos
+let _lastDPR = window.devicePixelRatio;
 let _resizeObserver = null;
+
 function setupResizeObserver() {
   if (_resizeObserver) _resizeObserver.disconnect();
   _resizeObserver = new ResizeObserver(() => {
     clearTimeout(window._resizeTimer);
-    window._resizeTimer = setTimeout(resizeAllCharts, 80);
+    window._resizeTimer = setTimeout(() => {
+      const dpr = window.devicePixelRatio;
+      if (Math.abs(dpr - _lastDPR) > 0.05) {
+        // zoom mudou — re-renderiza gráficos do zero (evita canvas com tamanho errado)
+        _lastDPR = dpr;
+        if (currentPage === 'performance' && state.currentData && state.currentData.length) applyFilters();
+        else if (currentPage === 'tempo' && stateTempo.currentData && stateTempo.currentData.length) applyFiltersTempo();
+      } else {
+        resizeAllCharts();
+      }
+    }, 120);
   });
-  document.querySelectorAll('.chart-container-main, .chart-container-sub').forEach(el => {
-    _resizeObserver.observe(el);
+  // observa o body inteiro para capturar zoom do browser
+  _resizeObserver.observe(document.body);
+}
+
+// fallback via matchMedia para detectar zoom em browsers que não disparam resize no body
+function watchZoomViaMatchMedia() {
+  const mql = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+  mql.addEventListener('change', () => {
+    _lastDPR = window.devicePixelRatio;
+    clearTimeout(window._zoomTimer);
+    window._zoomTimer = setTimeout(() => {
+      if (currentPage === 'performance' && state.currentData && state.currentData.length) applyFilters();
+      else if (currentPage === 'tempo' && stateTempo.currentData && stateTempo.currentData.length) applyFiltersTempo();
+      watchZoomViaMatchMedia(); // re-registra com o novo DPR
+    }, 120);
   });
 }
+watchZoomViaMatchMedia();
+
 window.addEventListener('resize', () => {
   clearTimeout(window._resizeTimer);
-  window._resizeTimer = setTimeout(resizeAllCharts, 80);
+  window._resizeTimer = setTimeout(resizeAllCharts, 100);
 });
 
 function exportCurrent() { if (currentPage === 'tempo') exportExcelTempo(); else exportExcel(); }
