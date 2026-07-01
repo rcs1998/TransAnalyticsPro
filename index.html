@@ -1093,7 +1093,32 @@ function switchPage(name) {
   document.getElementById('page-' + name).classList.add('active');
   document.querySelectorAll('.page-tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-btn-' + name).classList.add('active');
+  // força redimensionamento dos gráficos da página que ficou visível
+  setTimeout(() => resizeAllCharts(), 50);
 }
+
+function resizeAllCharts() {
+  [...Object.values(charts), ...Object.values(chartsTempo)].forEach(c => {
+    if (c && typeof c.resize === 'function') c.resize();
+  });
+}
+
+// ResizeObserver: detecta mudança de tamanho dos containers (inclui zoom do browser)
+let _resizeObserver = null;
+function setupResizeObserver() {
+  if (_resizeObserver) _resizeObserver.disconnect();
+  _resizeObserver = new ResizeObserver(() => {
+    clearTimeout(window._resizeTimer);
+    window._resizeTimer = setTimeout(resizeAllCharts, 80);
+  });
+  document.querySelectorAll('.chart-container-main, .chart-container-sub').forEach(el => {
+    _resizeObserver.observe(el);
+  });
+}
+window.addEventListener('resize', () => {
+  clearTimeout(window._resizeTimer);
+  window._resizeTimer = setTimeout(resizeAllCharts, 80);
+});
 
 function exportCurrent() { if (currentPage === 'tempo') exportExcelTempo(); else exportExcel(); }
 
@@ -1639,6 +1664,7 @@ function renderCharts(data, totals, dailyMap) {
   const dayKeys = Object.keys(dailyMap).sort();
   if(charts.daily) charts.daily.destroy();
   charts.daily = new Chart(document.getElementById('chart-daily'), { type: 'line', data: { labels: dayKeys.map(k => { const [y,m,d] = k.split('-'); return `${d}/${m}`; }), datasets: [{ label: 'Viagens', data: dayKeys.map(k => dailyMap[k]), borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', fill: true, tension: 0.25, pointRadius: dayKeys.length > 60 ? 0 : 3 }] }, options: { ...commonOptions, plugins: { legend: { display: false }, tooltip: { callbacks: { title: (items) => { const idx = items[0].dataIndex; return dayKeys[idx]; } } } } } });
+  setupResizeObserver();
 }
 
 function renderTable(data) {
@@ -2033,8 +2059,8 @@ function renderChartsTempo(totals, filteredEntries) {
   const dayKeys = Object.keys(totals.dailyAgg).sort();
   if (chartsTempo.daily) chartsTempo.daily.destroy();
   chartsTempo.daily = new Chart(document.getElementById('chart-tempo-daily'), { type: 'line', data: { labels: dayKeys.map(k => { const [y,m,d] = k.split('-'); return `${d}/${m}`; }), datasets: [{ label: 'Tempo Médio (min)', data: dayKeys.map(k => +(totals.dailyAgg[k].sum/totals.dailyAgg[k].count).toFixed(1)), borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', fill: true, tension: 0.25, pointRadius: dayKeys.length > 60 ? 0 : 3 }] }, options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, ticks: { ...commonOptions.scales.y.ticks, callback: v => v + ' min' } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw), title: (items) => { const idx = items[0].dataIndex; return dayKeys[idx]; } } } } } });
+  setupResizeObserver();
 }
-
 function renderCarrierTableTempo() {
   const tbody = document.getElementById('table-body-tempo'); tbody.innerHTML = '';
   let arr = [...stateTempo.currentData];
