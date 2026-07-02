@@ -990,7 +990,6 @@ const TV_SLIDES = {
 
 function openTVMode() {
   tvBuildKPIs();
-  tvBuildCharts();
   tv.channel = 'perf';
   tv.slide = 0;
   document.getElementById('tv-overlay').classList.add('active');
@@ -998,6 +997,7 @@ function openTVMode() {
   tvRender();
   tvStartPlay();
   document.addEventListener('keydown', tvKey);
+  window.addEventListener('resize', tvHandleResize);
 }
 
 function closeTVMode() {
@@ -1005,8 +1005,14 @@ function closeTVMode() {
   document.getElementById('tv-overlay').classList.remove('active');
   try { if (document.fullscreenElement) document.exitFullscreen(); } catch(e){}
   document.removeEventListener('keydown', tvKey);
+  window.removeEventListener('resize', tvHandleResize);
   Object.values(tv.charts).forEach(c => { try { c.destroy(); } catch(e){} });
   tv.charts = {};
+}
+
+function tvHandleResize() {
+  // apenas redimensiona os gráficos já existentes do slide ativo (sem reconstruir do zero)
+  Object.values(tv.charts).forEach(c => { try { c.resize(); } catch(e){} });
 }
 
 function tvKey(e) {
@@ -1025,7 +1031,8 @@ function tvRender() {
   // mostra/oculta canais
   document.querySelectorAll('[id^="tv-s-perf-"]').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('[id^="tv-s-tempo-"]').forEach(el => el.classList.remove('active'));
-  const el = document.getElementById(TV_SLIDES[ch][tv.slide]);
+  const slideId = TV_SLIDES[ch][tv.slide];
+  const el = document.getElementById(slideId);
   if (el) el.classList.add('active');
 
   // abas de canal
@@ -1043,10 +1050,14 @@ function tvRender() {
   }
   document.getElementById('tv-slide-count').innerText = `${tv.slide + 1} / ${total}`;
 
-  // resize charts no slide ativo
-  setTimeout(() => {
-    Object.values(tv.charts).forEach(c => { try { c.resize(); } catch(e){} });
-  }, 80);
+  // constrói (ou reconstrói) os gráficos do slide SOMENTE depois que ele já está visível,
+  // para o Chart.js medir o tamanho real do container (evita texto/gráfico "esticado")
+  const builder = TV_SLIDE_BUILDERS[slideId];
+  if (builder) {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      builder();
+    }));
+  }
 }
 
 function tvNext() {
@@ -1190,62 +1201,104 @@ function tvMakeChart(canvasId, type, data, extraOpts) {
 function tvTopCarriersByMovement(n = 10) {
   const arr = [...(state.currentData || [])].sort((a, b) => b.weight - a.weight).slice(0, n);
   return {
-    labels: arr.map(c => c.name.substring(0, 18)),
+    labels: arr.map(c => c.name.substring(0, 22)),
     datasets: [{ label: 'Volume (t)', data: arr.map(c => +c.weight.toFixed(1)), backgroundColor: '#00c8aa' }]
   };
 }
 
-function tvBuildCharts() {
-  const dark = '#c7d0dd';
-  // Esconde eixos para doughnut
-  const donutExtra = {
-    cutout: '52%',
-    scales: { x: { display: false }, y: { display: false } },
-    plugins: { legend: { display: true, position: 'right', labels: { color: dark, font: { size: 12 }, padding: 14 } } }
+function tvTopDivByCarrier(n = 10) {
+  const arr = [...(state.currentData || [])].filter(c => c.div > 0).sort((a, b) => b.div - a.div).slice(0, n);
+  return {
+    labels: arr.map(c => c.name.substring(0, 22)),
+    datasets: [{ data: arr.map(c => c.div), backgroundColor: '#ff6b6b' }]
   };
+}
 
-  // PERFORMANCE
-  // Slide 0: ranking de transportadoras por movimentação (volume total), não por motoristas
-  tvMakeChart('tvc-perf-0', 'bar', tvTopCarriersByMovement(10),
+function tvTopPlatesByTrips(n = 10) {
+  const src = tvCloneData(charts['plates']);
+  if (!src) return null;
+  return { labels: src.labels.slice(0, n), datasets: [{ data: src.datasets[0].data.slice(0, n), backgroundColor: src.datasets[0].backgroundColor }] };
+}
+
+function tvTopPlatesByTime(n = 10) {
+  const src = tvCloneData(chartsTempo['plates']);
+  if (!src) return null;
+  return { labels: src.labels.slice(0, n), datasets: [{ data: src.datasets[0].data.slice(0, n), backgroundColor: src.datasets[0].backgroundColor }] };
+}
+
+const dark_TV = '#c7d0dd';
+const gridC_TV = 'rgba(255,255,255,0.07)';
+
+// Slide 0 — Performance: ranking de transportadoras por movimentação (volume)
+function tvBuildSlidePerf0() {
+  const chartData = tvTopCarriersByMovement(10);
+  tvMakeChart('tvc-perf-0', 'bar', chartData,
     { indexAxis: 'y',
-      scales: { x: { ticks: { color: dark, font:{size:12,weight:'600'}, callback: v => v + ' t' }, grid:{color:'rgba(255,255,255,0.07)'} }, y: { ticks: { color: dark, font:{size:12,weight:'600'} }, grid:{display:false} } },
+      scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'}, callback: v => v + ' t' }, grid:{color:gridC_TV} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} } },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `Volume: ${ctx.raw.toLocaleString('pt-BR')} t` } } },
       onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
-      onClick: (e, els) => { if (els.length) setCarrierFilter(tvTopCarriersByMovement(10).labels[els[0].index]); }
+      onClick: (e, els) => { if (els.length) setCarrierFilter(chartData.labels[els[0].index]); }
+    });
+}
+
+// Slide 1 — Performance: divergências, placas e viagens por dia
+function tvBuildSlidePerf1() {
+  tvMakeChart('tvc-perf-1a', 'bar', tvTopDivByCarrier(10),
+    { indexAxis: 'y',
+      scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{color:gridC_TV} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} } },
+      plugins: { legend: { display: false } }
     });
 
-  tvMakeChart('tvc-perf-1a', 'bar', tvCloneData(charts['div']), {});
-  tvMakeChart('tvc-perf-1b', 'bar', tvCloneData(charts['plates']), {});
+  tvMakeChart('tvc-perf-1b', 'bar', tvTopPlatesByTrips(10),
+    { indexAxis: 'y',
+      scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{color:gridC_TV} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} } },
+      plugins: { legend: { display: false } }
+    });
 
   const dailyDataPerf = tvCloneData(charts['daily']);
   if (dailyDataPerf) dailyDataPerf.datasets.forEach(d => d.pointRadius = 0);
   tvMakeChart('tvc-perf-1c', 'line', dailyDataPerf,
-    { plugins: { legend: { display: false } }, elements: { line: { tension: 0.25 } } });
+    { scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{color:gridC_TV}, beginAtZero:true } },
+      plugins: { legend: { display: false } }, elements: { line: { tension: 0.25 } } });
+}
 
-  // TEMPO — valores exibidos em horas (HH:MM), igual aos gráficos do dashboard
+// Slide 0 — Tempo na Usina: ranking de transportadoras por tempo médio (em horas)
+function tvBuildSlideTempo0() {
   tvMakeChart('tvc-tempo-0', 'bar', tvCloneData(chartsTempo['carriers']),
     { indexAxis: 'y', _valueFormat: formatMinutes,
-      scales: { x: { ticks: { color: dark, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:'rgba(255,255,255,0.07)'} }, y: { ticks: { color: dark, font:{size:12,weight:'600'} }, grid:{display:false} } },
+      scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:gridC_TV} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } }
+    });
+}
+
+// Slide 1 — Tempo na Usina: placas, distribuição e tempo médio por dia (em horas)
+function tvBuildSlideTempo1() {
+  tvMakeChart('tvc-tempo-1a', 'bar', tvTopPlatesByTime(10),
+    { indexAxis: 'y', _valueFormat: formatMinutes,
+      scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:gridC_TV} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} } },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } }
     });
 
-  tvMakeChart('tvc-tempo-1a', 'bar', tvCloneData(chartsTempo['plates']),
-    { _valueFormat: formatMinutes,
-      scales: { x: { ticks: { color: dark, font:{size:12,weight:'600'} }, grid:{display:false} }, y: { ticks: { color: dark, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:'rgba(255,255,255,0.07)'}, beginAtZero: true } },
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } }
-    });
-
-  tvMakeChart('tvc-tempo-1b', 'bar', tvCloneData(chartsTempo['dist']), {});
+  tvMakeChart('tvc-tempo-1b', 'bar', tvCloneData(chartsTempo['dist']),
+    { scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{color:gridC_TV}, beginAtZero:true } },
+      plugins: { legend: { display: false } } });
 
   const dailyDataTempo = tvCloneData(chartsTempo['daily']);
   if (dailyDataTempo) dailyDataTempo.datasets.forEach(d => d.pointRadius = 0);
   tvMakeChart('tvc-tempo-1c', 'line', dailyDataTempo,
     { _valueFormat: formatMinutes,
-      scales: { x: { ticks: { color: dark, font:{size:12,weight:'600'} }, grid:{display:false} }, y: { ticks: { color: dark, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:'rgba(255,255,255,0.07)'}, beginAtZero: true } },
+      scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:gridC_TV}, beginAtZero: true } },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } },
       elements: { line: { tension: 0.25 } }
     });
 }
+
+const TV_SLIDE_BUILDERS = {
+  'tv-s-perf-0': tvBuildSlidePerf0,
+  'tv-s-perf-1': tvBuildSlidePerf1,
+  'tv-s-tempo-0': tvBuildSlideTempo0,
+  'tv-s-tempo-1': tvBuildSlideTempo1
+};
 /* ==================== FIM MODO TV ==================== */
 
 function exportPageAsPNG() {
