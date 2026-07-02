@@ -232,40 +232,93 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
 .page-tabs { display: flex; gap: 6px; padding: 18px 24px 0; max-width: 1920px; margin: 0 auto; }
 
 /* TV MODE */
-#tv-overlay { display: none; position: fixed; inset: 0; background: #06080f; z-index: 9999; flex-direction: column; }
+#tv-overlay {
+  display: none; position: fixed; inset: 0; background: #06080f;
+  z-index: 9999; flex-direction: column; font-family: var(--font-head);
+}
 #tv-overlay.active { display: flex; }
-.tv-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 32px 12px; flex-shrink: 0; }
-.tv-logo { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; font-family: var(--font-head); color: var(--text-1); letter-spacing: -0.01em; }
-.tv-logo .logo-icon { width: 30px; height: 30px; background: var(--accent); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #06140f; }
+
+.tv-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px; flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,0.07);
+  height: 56px;
+}
+.tv-logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 800; color: var(--text-1); }
+.tv-logo .li { width: 28px; height: 28px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; color: #041a10; }
 .tv-logo em { color: var(--accent); font-style: normal; }
-.tv-meta { font-size: 12px; color: var(--text-3); }
-.tv-controls { display: flex; align-items: center; gap: 12px; }
-.tv-ctrl-btn { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--text-2); padding: 6px 14px; border-radius: var(--radius); font-size: 12px; cursor: pointer; }
-.tv-ctrl-btn:hover { color: var(--text-1); background: rgba(255,255,255,0.12); }
-.tv-ctrl-btn.active { color: var(--accent); border-color: var(--accent); }
-.tv-interval-select { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--text-2); padding: 6px 10px; border-radius: var(--radius); font-size: 12px; cursor: pointer; }
-.tv-channel-tabs { display: flex; gap: 6px; padding: 0 32px; flex-shrink: 0; }
-.tv-channel-btn { padding: 8px 18px; border-radius: var(--radius) var(--radius) 0 0; font-size: 12px; font-weight: 600; font-family: var(--font-head); cursor: pointer; border: 1px solid transparent; border-bottom: none; color: var(--text-3); background: transparent; }
-.tv-channel-btn.active { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); color: var(--accent); }
-.tv-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-top: 1px solid var(--border); }
-.tv-slide { display: none; flex: 1; flex-direction: column; padding: 24px 32px 16px; overflow: hidden; }
-.tv-slide.active { display: flex; }
-.tv-slide-title { font-family: var(--font-head); font-size: 18px; font-weight: 700; color: var(--text-1); margin-bottom: 16px; flex-shrink: 0; }
-.tv-kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; flex: 1; align-content: center; }
-.tv-kpi-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px 24px; display: flex; flex-direction: column; gap: 8px; }
-.tv-kpi-label { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; }
-.tv-kpi-value { font-size: 42px; font-weight: 800; font-family: var(--font-head); line-height: 1; }
-.tv-kpi-sub { font-size: 12px; color: var(--text-3); }
-.tv-chart-wrap { flex: 1; position: relative; min-height: 0; }
-.tv-chart-wrap canvas { width: 100% !important; height: 100% !important; }
-.tv-progress-bar { height: 3px; background: var(--bg-3); flex-shrink: 0; position: relative; margin: 0; }
-.tv-progress-fill { height: 100%; background: var(--accent); width: 0%; transition: none; }
-.tv-nav { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 32px; flex-shrink: 0; }
-.tv-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--bg-3); cursor: pointer; transition: background 0.2s; }
+.tv-controls { display: flex; align-items: center; gap: 10px; }
+.tv-btn { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: var(--text-2); padding: 5px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.tv-btn:hover { color: #fff; background: rgba(255,255,255,0.14); }
+.tv-btn.accent { color: var(--accent); border-color: var(--accent); }
+.tv-select { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: var(--text-2); padding: 5px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.tv-meta { font-size: 11px; color: var(--text-3); }
+
+.tv-channel-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 28px 0; flex-shrink: 0;
+}
+.tv-ch-btn { padding: 7px 18px; border-radius: 7px 7px 0 0; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid transparent; border-bottom: none; color: var(--text-3); background: transparent; }
+.tv-ch-btn.active { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); color: var(--accent); }
+.tv-channel-note { font-size: 11px; color: var(--text-3); margin-left: auto; padding-bottom: 4px; }
+
+.tv-body { flex: 1; overflow: hidden; border-top: 1px solid rgba(255,255,255,0.07); display: flex; flex-direction: column; }
+.tv-slide { display: none; flex: 1; min-height: 0; }
+.tv-slide.active { display: grid; }
+
+/* SLIDE LAYOUTS */
+.tv-slide-kpi {
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 340px 1fr;
+  gap: 0; padding: 0;
+}
+.tv-slide-charts {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  gap: 0;
+}
+.tv-slide-charts-3 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 55% 45%;
+  gap: 0;
+}
+
+.tv-kpi-col {
+  display: flex; flex-direction: column; gap: 0;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  padding: 20px 20px 20px 28px;
+  justify-content: center;
+}
+.tv-kpi-card {
+  padding: 16px 18px; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.tv-kpi-card:last-child { border-bottom: none; }
+.tv-kpi-label { font-size: 10px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+.tv-kpi-value { font-size: 34px; font-weight: 900; line-height: 1; }
+.tv-kpi-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+.tv-chart-panel {
+  display: flex; flex-direction: column;
+  padding: 16px 22px 14px;
+  min-height: 0;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.tv-chart-panel:last-child { border-right: none; }
+.tv-chart-panel.full { grid-column: 1 / -1; border-right: none; }
+.tv-chart-panel.full-row { grid-column: 1 / -1; border-right: none; }
+.tv-chart-label { font-size: 12px; font-weight: 700; color: var(--text-2); margin-bottom: 10px; flex-shrink: 0; letter-spacing: 0.01em; }
+.tv-chart-inner { flex: 1; position: relative; min-height: 0; }
+.tv-chart-inner canvas { position: absolute; inset: 0; }
+
+.tv-foot { display: flex; align-items: center; gap: 8px; padding: 8px 28px; flex-shrink: 0; }
+.tv-progress-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+.tv-progress-fill { height: 100%; background: var(--accent); width: 0%; }
+.tv-dot-wrap { display: flex; gap: 5px; align-items: center; }
+.tv-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.18); cursor: pointer; transition: background 0.2s; }
 .tv-dot.active { background: var(--accent); }
-.tv-arrow { background: none; border: none; color: var(--text-3); font-size: 20px; cursor: pointer; padding: 4px 10px; }
-.tv-arrow:hover { color: var(--text-1); }
-.tv-date-badge { font-size: 11px; color: var(--text-3); margin-left: auto; align-self: center; }
+.tv-arr { background: none; border: none; color: var(--text-3); font-size: 18px; cursor: pointer; line-height: 1; padding: 0 4px; }
+.tv-arr:hover { color: #fff; }
+.tv-slide-count { font-size: 11px; color: var(--text-3); }
 
 .page-tab-btn { background: var(--bg-2); border: 1px solid var(--border); color: var(--text-2); padding: 10px 18px; border-radius: var(--radius) var(--radius) 0 0; font-size: 13px; font-weight: 600; font-family: var(--font-head); cursor: pointer; transition: var(--transition); border-bottom: none; }
 .page-tab-btn:hover { color: var(--text-1); background: var(--bg-3); }
@@ -325,80 +378,102 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
 </div>
 <div class="mobile-drawer-overlay" id="mobile-drawer-overlay" style="display:none" onclick="toggleMobileDrawer()"></div>
 
-<!-- ======= MODO TV ======= -->
+
+
+<!-- ===== MODO TV ===== -->
 <div id="tv-overlay">
-  <div class="tv-header">
-    <div class="tv-logo"><div class="logo-icon">T</div> TransAnalytics <em>Pro</em></div>
-    <div class="tv-meta" id="tv-date-meta"></div>
+  <div class="tv-topbar">
+    <div class="tv-logo"><div class="li">T</div> TransAnalytics <em>Pro</em></div>
+    <div class="tv-meta" id="tv-meta"></div>
     <div class="tv-controls">
-      <select class="tv-interval-select" id="tv-interval" onchange="tvSetInterval()">
-        <option value="8000">8s</option>
-        <option value="10000" selected>10s</option>
-        <option value="15000">15s</option>
-        <option value="20000">20s</option>
-        <option value="30000">30s</option>
+      <select class="tv-select" id="tv-interval" onchange="tvSetInterval()">
+        <option value="8000">8s/slide</option>
+        <option value="10000" selected>10s/slide</option>
+        <option value="15000">15s/slide</option>
+        <option value="20000">20s/slide</option>
+        <option value="30000">30s/slide</option>
       </select>
-      <button class="tv-ctrl-btn" id="tv-play-btn" onclick="tvTogglePlay()">⏸ Pausar</button>
-      <button class="tv-ctrl-btn" onclick="closeTVMode()">✕ Sair</button>
+      <button class="tv-btn" id="tv-play-btn" onclick="tvTogglePlay()">⏸ Pausar</button>
+      <button class="tv-btn" onclick="closeTVMode()">✕ Sair</button>
     </div>
   </div>
 
-  <div class="tv-channel-tabs">
-    <button class="tv-channel-btn active" id="tv-ch-perf" onclick="tvSetChannel('perf')">📦 Performance</button>
-    <button class="tv-channel-btn" id="tv-ch-tempo" onclick="tvSetChannel('tempo')">⏱️ Tempo na Usina</button>
+  <div class="tv-channel-row">
+    <button class="tv-ch-btn active" id="tv-ch-perf" onclick="tvSetChannel('perf')">📦 Performance</button>
+    <button class="tv-ch-btn" id="tv-ch-tempo" onclick="tvSetChannel('tempo')">⏱️ Tempo na Usina</button>
+    <span class="tv-channel-note">Alterna automaticamente entre canais</span>
   </div>
 
   <div class="tv-body">
-    <!-- ---- CANAL PERFORMANCE ---- -->
-    <div id="tv-perf">
-      <div class="tv-slide" id="tv-perf-0">
-        <div style="display:flex;align-items:baseline;gap:12px;flex-shrink:0;">
-          <span class="tv-slide-title">Indicadores de Performance</span>
-          <span class="tv-date-badge" id="tv-perf-date"></span>
-        </div>
-        <div class="tv-kpi-grid">
-          <div class="tv-kpi-card" style="border-top:3px solid var(--accent)"><div class="tv-kpi-label">Volume Total</div><div class="tv-kpi-value" id="tv-kpi-vol" style="color:var(--accent)">—</div><div class="tv-kpi-sub" id="tv-kpi-vol-sub"></div></div>
-          <div class="tv-kpi-card" style="border-top:3px solid var(--blue)"><div class="tv-kpi-label">Total Motoristas</div><div class="tv-kpi-value" id="tv-kpi-drv" style="color:var(--blue)">—</div><div class="tv-kpi-sub">CPFs únicos</div></div>
-          <div class="tv-kpi-card" style="border-top:3px solid var(--purple)"><div class="tv-kpi-label">Veículos</div><div class="tv-kpi-value" id="tv-kpi-veh" style="color:var(--purple)">—</div><div class="tv-kpi-sub">Placas únicas</div></div>
-          <div class="tv-kpi-card" style="border-top:3px solid var(--coral)"><div class="tv-kpi-label">Divergências</div><div class="tv-kpi-value" id="tv-kpi-div" style="color:var(--coral)">—</div><div class="tv-kpi-sub">Pesagens críticas</div></div>
-          <div class="tv-kpi-card" style="border-top:3px solid var(--amber)"><div class="tv-kpi-label">Eficiência</div><div class="tv-kpi-value" id="tv-kpi-eff" style="color:var(--amber)">—</div><div class="tv-kpi-sub">Média por viagem</div></div>
-        </div>
+    <!-- PERFORMANCE: slide 0 = KPIs + Ranking Motoristas -->
+    <div class="tv-slide tv-slide-kpi" id="tv-s-perf-0">
+      <div class="tv-kpi-col">
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Volume Total</div><div class="tv-kpi-value" id="tv-k-vol" style="color:var(--accent)">—</div><div class="tv-kpi-sub" id="tv-k-vol-sub"></div></div>
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Motoristas</div><div class="tv-kpi-value" id="tv-k-drv" style="color:var(--blue)">—</div><div class="tv-kpi-sub">CPFs únicos</div></div>
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Veículos</div><div class="tv-kpi-value" id="tv-k-veh" style="color:var(--purple)">—</div><div class="tv-kpi-sub">Placas únicas</div></div>
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Divergências</div><div class="tv-kpi-value" id="tv-k-div" style="color:var(--coral)">—</div><div class="tv-kpi-sub">Pesagens críticas</div></div>
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Eficiência</div><div class="tv-kpi-value" id="tv-k-eff" style="color:var(--amber)">—</div><div class="tv-kpi-sub">Média por viagem</div></div>
       </div>
-      <div class="tv-slide" id="tv-perf-1"><div class="tv-slide-title">Ranking de Motoristas por Transportadora</div><div class="tv-chart-wrap"><canvas id="tv-chart-perf-1"></canvas></div></div>
-      <div class="tv-slide" id="tv-perf-2"><div class="tv-slide-title">Divergências por Transportadora</div><div class="tv-chart-wrap"><canvas id="tv-chart-perf-2"></canvas></div></div>
-      <div class="tv-slide" id="tv-perf-3"><div class="tv-slide-title">Ranking de Placas (Viagens)</div><div class="tv-chart-wrap"><canvas id="tv-chart-perf-3"></canvas></div></div>
-      <div class="tv-slide" id="tv-perf-4"><div class="tv-slide-title">Distribuição por Material</div><div class="tv-chart-wrap"><canvas id="tv-chart-perf-4"></canvas></div></div>
-      <div class="tv-slide" id="tv-perf-5"><div class="tv-slide-title">Viagens por Dia</div><div class="tv-chart-wrap"><canvas id="tv-chart-perf-5"></canvas></div></div>
+      <div class="tv-chart-panel" style="border-right:none; border-bottom:none">
+        <div class="tv-chart-label">Ranking de Motoristas por Transportadora</div>
+        <div class="tv-chart-inner"><canvas id="tvc-perf-0"></canvas></div>
+      </div>
     </div>
 
-    <!-- ---- CANAL TEMPO ---- -->
-    <div id="tv-tempo" style="display:none">
-      <div class="tv-slide" id="tv-tempo-0">
-        <div style="display:flex;align-items:baseline;gap:12px;flex-shrink:0;">
-          <span class="tv-slide-title">Indicadores de Tempo na Usina</span>
-          <span class="tv-date-badge" id="tv-tempo-date"></span>
-        </div>
-        <div class="tv-kpi-grid">
-          <div class="tv-kpi-card" style="border-top:3px solid var(--accent)"><div class="tv-kpi-label">Tempo Médio na Usina</div><div class="tv-kpi-value" id="tv-kpi-tmed" style="color:var(--accent);font-size:36px">—</div><div class="tv-kpi-sub">HH:MM</div></div>
-          <div class="tv-kpi-card" style="border-top:3px solid var(--blue)"><div class="tv-kpi-label">Tempo Médio Entre Pesos</div><div class="tv-kpi-value" id="tv-kpi-tpesos" style="color:var(--blue);font-size:36px">—</div><div class="tv-kpi-sub">tara → bruto</div></div>
-          <div class="tv-kpi-card" style="border-top:3px solid var(--purple)"><div class="tv-kpi-label">Veículos</div><div class="tv-kpi-value" id="tv-kpi-tveh" style="color:var(--purple)">—</div><div class="tv-kpi-sub">Placas únicas</div></div>
-          <div class="tv-kpi-card" style="border-top:3px solid var(--green)"><div class="tv-kpi-label">Transportadoras</div><div class="tv-kpi-value" id="tv-kpi-tcar" style="color:var(--green)">—</div><div class="tv-kpi-sub">identificadas</div></div>
-          <div class="tv-kpi-card" style="border-top:3px solid var(--coral)"><div class="tv-kpi-label">Viagens Críticas</div><div class="tv-kpi-value" id="tv-kpi-tcrit" style="color:var(--coral)">—</div><div class="tv-kpi-sub" id="tv-kpi-tcrit-sub">acima de 2h</div></div>
-        </div>
+    <!-- PERFORMANCE: slide 1 = Divergências + Placas em cima, Viagens por Dia embaixo -->
+    <div class="tv-slide tv-slide-charts-3" id="tv-s-perf-1">
+      <div class="tv-chart-panel">
+        <div class="tv-chart-label">Divergências por Transportadora</div>
+        <div class="tv-chart-inner"><canvas id="tvc-perf-1a"></canvas></div>
       </div>
-      <div class="tv-slide" id="tv-tempo-1"><div class="tv-slide-title">Ranking de Transportadoras por Tempo Médio</div><div class="tv-chart-wrap"><canvas id="tv-chart-tempo-1"></canvas></div></div>
-      <div class="tv-slide" id="tv-tempo-2"><div class="tv-slide-title">Ranking de Placas por Tempo Médio</div><div class="tv-chart-wrap"><canvas id="tv-chart-tempo-2"></canvas></div></div>
-      <div class="tv-slide" id="tv-tempo-3"><div class="tv-slide-title">Distribuição de Tempos na Usina</div><div class="tv-chart-wrap"><canvas id="tv-chart-tempo-3"></canvas></div></div>
-      <div class="tv-slide" id="tv-tempo-4"><div class="tv-slide-title">Distribuição por Material</div><div class="tv-chart-wrap"><canvas id="tv-chart-tempo-4"></canvas></div></div>
-      <div class="tv-slide" id="tv-tempo-5"><div class="tv-slide-title">Tempo Médio por Dia</div><div class="tv-chart-wrap"><canvas id="tv-chart-tempo-5"></canvas></div></div>
+      <div class="tv-chart-panel" style="border-right:none">
+        <div class="tv-chart-label">Ranking de Placas (Viagens)</div>
+        <div class="tv-chart-inner"><canvas id="tvc-perf-1b"></canvas></div>
+      </div>
+      <div class="tv-chart-panel full" style="border-bottom:none">
+        <div class="tv-chart-label">Viagens por Dia</div>
+        <div class="tv-chart-inner"><canvas id="tvc-perf-1c"></canvas></div>
+      </div>
+    </div>
+
+    <!-- TEMPO: slide 0 = KPIs + Ranking Transportadoras -->
+    <div class="tv-slide tv-slide-kpi" id="tv-s-tempo-0">
+      <div class="tv-kpi-col">
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Tempo Médio na Usina</div><div class="tv-kpi-value" id="tv-k-tmed" style="color:var(--accent);font-size:30px">—</div><div class="tv-kpi-sub">HH:MM</div></div>
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Tempo Entre Pesos</div><div class="tv-kpi-value" id="tv-k-tpes" style="color:var(--blue);font-size:30px">—</div><div class="tv-kpi-sub">tara → bruto</div></div>
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Veículos</div><div class="tv-kpi-value" id="tv-k-tveh" style="color:var(--purple)">—</div><div class="tv-kpi-sub">Placas únicas</div></div>
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Transportadoras</div><div class="tv-kpi-value" id="tv-k-tcar" style="color:var(--green)">—</div><div class="tv-kpi-sub">identificadas</div></div>
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Viagens Críticas</div><div class="tv-kpi-value" id="tv-k-tcrit" style="color:var(--coral)">—</div><div class="tv-kpi-sub" id="tv-k-tcrit-sub">acima de 2h</div></div>
+      </div>
+      <div class="tv-chart-panel" style="border-right:none; border-bottom:none">
+        <div class="tv-chart-label">Ranking de Transportadoras por Tempo Médio</div>
+        <div class="tv-chart-inner"><canvas id="tvc-tempo-0"></canvas></div>
+      </div>
+    </div>
+
+    <!-- TEMPO: slide 1 = Ranking Placas + Distribuição Tempos em cima, Tempo por Dia embaixo -->
+    <div class="tv-slide tv-slide-charts-3" id="tv-s-tempo-1">
+      <div class="tv-chart-panel">
+        <div class="tv-chart-label">Ranking de Placas por Tempo Médio</div>
+        <div class="tv-chart-inner"><canvas id="tvc-tempo-1a"></canvas></div>
+      </div>
+      <div class="tv-chart-panel" style="border-right:none">
+        <div class="tv-chart-label">Distribuição de Tempos na Usina</div>
+        <div class="tv-chart-inner"><canvas id="tvc-tempo-1b"></canvas></div>
+      </div>
+      <div class="tv-chart-panel full" style="border-bottom:none">
+        <div class="tv-chart-label">Tempo Médio por Dia</div>
+        <div class="tv-chart-inner"><canvas id="tvc-tempo-1c"></canvas></div>
+      </div>
     </div>
   </div>
 
-  <div class="tv-progress-bar"><div class="tv-progress-fill" id="tv-progress"></div></div>
-  <div class="tv-nav">
-    <button class="tv-arrow" onclick="tvPrev()">‹</button>
-    <div id="tv-dots"></div>
-    <button class="tv-arrow" onclick="tvNext()">›</button>
+  <div class="tv-foot">
+    <button class="tv-arr" onclick="tvPrev()">‹</button>
+    <div class="tv-dot-wrap" id="tv-dots"></div>
+    <button class="tv-arr" onclick="tvNext()">›</button>
+    <div class="tv-progress-bar"><div class="tv-progress-fill" id="tv-progress"></div></div>
+    <span class="tv-slide-count" id="tv-slide-count">1 / 2</span>
   </div>
 </div>
 
@@ -894,95 +969,106 @@ function exportWorstTimesXLSX() {
 const tv = {
   channel: 'perf',
   slide: 0,
-  totalSlides: { perf: 6, tempo: 6 },
+  slides: { perf: 2, tempo: 2 },
   playing: true,
-  intervalMs: 10000,
+  ms: 10000,
   timer: null,
-  progressTimer: null,
   charts: {}
 };
 
+const TV_SLIDES = {
+  perf:  ['tv-s-perf-0',  'tv-s-perf-1'],
+  tempo: ['tv-s-tempo-0', 'tv-s-tempo-1']
+};
+
 function openTVMode() {
-  const overlay = document.getElementById('tv-overlay');
-  overlay.classList.add('active');
-  overlay.requestFullscreen && overlay.requestFullscreen().catch(() => {});
   tvBuildKPIs();
   tvBuildCharts();
+  tv.channel = 'perf';
   tv.slide = 0;
-  tvShowSlide(0);
+  document.getElementById('tv-overlay').classList.add('active');
+  try { document.getElementById('tv-overlay').requestFullscreen(); } catch(e){}
+  tvRender();
   tvStartPlay();
-  document.addEventListener('keydown', tvKeyHandler);
+  document.addEventListener('keydown', tvKey);
 }
 
 function closeTVMode() {
-  tv.playing = false;
   clearTimeout(tv.timer);
-  clearInterval(tv.progressTimer);
   document.getElementById('tv-overlay').classList.remove('active');
-  document.fullscreenElement && document.exitFullscreen().catch(() => {});
-  document.removeEventListener('keydown', tvKeyHandler);
-  // destrói charts do TV para não conflitar com os do dashboard
-  Object.values(tv.charts).forEach(c => { try { c.destroy(); } catch (e) {} });
+  try { if (document.fullscreenElement) document.exitFullscreen(); } catch(e){}
+  document.removeEventListener('keydown', tvKey);
+  Object.values(tv.charts).forEach(c => { try { c.destroy(); } catch(e){} });
   tv.charts = {};
 }
 
-function tvKeyHandler(e) {
+function tvKey(e) {
   if (e.key === 'Escape') closeTVMode();
-  else if (e.key === 'ArrowRight' || e.key === ' ') tvNext();
+  else if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); tvNext(); }
   else if (e.key === 'ArrowLeft') tvPrev();
   else if (e.key === 'p' || e.key === 'P') tvTogglePlay();
   else if (e.key === '1') tvSetChannel('perf');
   else if (e.key === '2') tvSetChannel('tempo');
 }
 
-function tvSetChannel(ch) {
-  tv.channel = ch;
-  tv.slide = 0;
-  document.getElementById('tv-perf').style.display = ch === 'perf' ? 'block' : 'none';
-  document.getElementById('tv-tempo').style.display = ch === 'tempo' ? 'block' : 'none';
+function tvRender() {
+  const ch = tv.channel;
+  const total = tv.slides[ch];
+
+  // mostra/oculta canais
+  document.querySelectorAll('[id^="tv-s-perf-"]').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('[id^="tv-s-tempo-"]').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById(TV_SLIDES[ch][tv.slide]);
+  if (el) el.classList.add('active');
+
+  // abas de canal
   document.getElementById('tv-ch-perf').classList.toggle('active', ch === 'perf');
   document.getElementById('tv-ch-tempo').classList.toggle('active', ch === 'tempo');
-  tvShowSlide(0);
-  if (tv.playing) tvStartPlay();
-}
 
-function tvShowSlide(idx) {
-  const ch = tv.channel;
-  const total = tv.totalSlides[ch];
-  tv.slide = ((idx % total) + total) % total;
-  document.querySelectorAll(`#tv-${ch} .tv-slide`).forEach((el, i) => {
-    el.classList.toggle('active', i === tv.slide);
-  });
   // dots
   const dotsEl = document.getElementById('tv-dots');
   dotsEl.innerHTML = '';
   for (let i = 0; i < total; i++) {
     const d = document.createElement('div');
     d.className = 'tv-dot' + (i === tv.slide ? ' active' : '');
-    d.onclick = () => { tvShowSlide(i); if (tv.playing) tvStartPlay(); };
+    const ci = i; d.onclick = () => { tv.slide = ci; tvRender(); if (tv.playing) tvStartPlay(); };
     dotsEl.appendChild(d);
   }
-  // resize chart if shown
-  if (tv.slide > 0) {
-    const key = `${ch}-${tv.slide}`;
-    setTimeout(() => { if (tv.charts[key]) tv.charts[key].resize(); }, 60);
-  }
+  document.getElementById('tv-slide-count').innerText = `${tv.slide + 1} / ${total}`;
+
+  // resize charts no slide ativo
+  setTimeout(() => {
+    Object.values(tv.charts).forEach(c => { try { c.resize(); } catch(e){} });
+  }, 80);
 }
 
-function tvNext() { tvShowSlide(tv.slide + 1); if (tv.playing) tvStartPlay(); }
-function tvPrev() { tvShowSlide(tv.slide - 1); if (tv.playing) tvStartPlay(); }
+function tvNext() {
+  const total = tv.slides[tv.channel];
+  tv.slide++;
+  if (tv.slide >= total) {
+    // fim do canal: troca de canal automaticamente
+    tv.slide = 0;
+    tv.channel = tv.channel === 'perf' ? 'tempo' : 'perf';
+  }
+  tvRender();
+  if (tv.playing) tvStartPlay();
+}
 
-function tvStartPlay() {
-  clearTimeout(tv.timer);
-  clearInterval(tv.progressTimer);
-  const fill = document.getElementById('tv-progress');
-  fill.style.transition = 'none';
-  fill.style.width = '0%';
-  setTimeout(() => {
-    fill.style.transition = `width ${tv.intervalMs}ms linear`;
-    fill.style.width = '100%';
-  }, 30);
-  tv.timer = setTimeout(() => { tvNext(); }, tv.intervalMs);
+function tvPrev() {
+  tv.slide--;
+  if (tv.slide < 0) {
+    tv.channel = tv.channel === 'perf' ? 'tempo' : 'perf';
+    tv.slide = tv.slides[tv.channel] - 1;
+  }
+  tvRender();
+  if (tv.playing) tvStartPlay();
+}
+
+function tvSetChannel(ch) {
+  tv.channel = ch;
+  tv.slide = 0;
+  tvRender();
+  if (tv.playing) tvStartPlay();
 }
 
 function tvTogglePlay() {
@@ -992,107 +1078,132 @@ function tvTogglePlay() {
   else {
     clearTimeout(tv.timer);
     const fill = document.getElementById('tv-progress');
-    fill.style.transition = 'none';
-    fill.style.width = '0%';
+    fill.style.transition = 'none'; fill.style.width = '0%';
   }
 }
 
 function tvSetInterval() {
-  tv.intervalMs = parseInt(document.getElementById('tv-interval').value);
+  tv.ms = parseInt(document.getElementById('tv-interval').value);
   if (tv.playing) tvStartPlay();
 }
 
+function tvStartPlay() {
+  clearTimeout(tv.timer);
+  const fill = document.getElementById('tv-progress');
+  fill.style.transition = 'none'; fill.style.width = '0%';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    fill.style.transition = `width ${tv.ms}ms linear`;
+    fill.style.width = '100%';
+  }));
+  tv.timer = setTimeout(tvNext, tv.ms);
+}
+
 function tvBuildKPIs() {
-  const get = (id) => document.getElementById(id)?.innerText || '—';
-  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
-  setEl('tv-kpi-vol',     get('kpi-weight').replace(/\s*t\s*$/, '') + ' t');
-  setEl('tv-kpi-vol-sub', get('kpi-records'));
-  setEl('tv-kpi-drv',     get('kpi-drivers'));
-  setEl('tv-kpi-veh',     get('kpi-vehicles'));
-  setEl('tv-kpi-div',     get('kpi-div'));
-  setEl('tv-kpi-eff',     get('kpi-avg').replace(/\s*t\s*$/, '') + ' t');
-  setEl('tv-kpi-tmed',    get('kpi-tempo-medio'));
-  setEl('tv-kpi-tpesos',  get('kpi-tempo-entrepesos'));
-  setEl('tv-kpi-tveh',    get('kpi-tempo-vehicles'));
-  setEl('tv-kpi-tcar',    get('kpi-tempo-carriers'));
-  setEl('tv-kpi-tcrit',   get('kpi-tempo-criticas'));
-  setEl('tv-kpi-tcrit-sub', get('kpi-tempo-criticas-sub'));
+  const g = id => document.getElementById(id)?.innerText || '—';
+  const s = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+  s('tv-k-vol',   g('kpi-weight').replace(/\s+/g,'') );
+  s('tv-k-vol-sub', g('kpi-records'));
+  s('tv-k-drv',   g('kpi-drivers'));
+  s('tv-k-veh',   g('kpi-vehicles'));
+  s('tv-k-div',   g('kpi-div'));
+  s('tv-k-eff',   g('kpi-avg'));
+  s('tv-k-tmed',  g('kpi-tempo-medio'));
+  s('tv-k-tpes',  g('kpi-tempo-entrepesos'));
+  s('tv-k-tveh',  g('kpi-tempo-vehicles'));
+  s('tv-k-tcar',  g('kpi-tempo-carriers'));
+  s('tv-k-tcrit', g('kpi-tempo-criticas'));
+  s('tv-k-tcrit-sub', g('kpi-tempo-criticas-sub'));
   const hn = document.getElementById('header-filename')?.innerText || '';
-  setEl('tv-date-meta', hn);
+  s('tv-meta', hn);
+}
+
+function tvCloneData(srcChart) {
+  if (!srcChart) return null;
+  return JSON.parse(JSON.stringify(srcChart.data));
+}
+
+function tvMakeChart(canvasId, type, data, extraOpts) {
+  if (!data) return;
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  if (tv.charts[canvasId]) { try { tv.charts[canvasId].destroy(); } catch(e){} }
+  const dark = '#9aa5b8', gridC = 'rgba(255,255,255,0.05)';
+  const baseOpts = {
+    responsive: true, maintainAspectRatio: false, animation: { duration: 500 },
+    plugins: { legend: { display: false }, customDataLabels: undefined },
+    scales: {
+      x: { ticks: { color: dark, font: { size: 12 } }, grid: { color: gridC } },
+      y: { ticks: { color: dark, font: { size: 12 } }, grid: { color: gridC }, beginAtZero: true }
+    }
+  };
+  // rótulos de dados no TV: usa o plugin customDataLabels que já temos
+  const tvDataLabelsPlugin = {
+    id: 'tvLabels',
+    afterDatasetsDraw(chart) {
+      const ctx2 = chart.ctx;
+      chart.data.datasets.forEach((dataset, di) => {
+        const meta = chart.getDatasetMeta(di);
+        if (meta.hidden) return;
+        meta.data.forEach((el, idx) => {
+          const val = dataset.data[idx];
+          if (val === null || val === undefined || val === 0) return;
+          const text = typeof val === 'number'
+            ? (Number.isInteger(val) ? String(val) : val.toFixed(1))
+            : String(val);
+          const pos = el.tooltipPosition ? el.tooltipPosition() : { x: el.x, y: el.y };
+          let x = pos.x, y = pos.y;
+          if (chart.config.type === 'bar') {
+            if (chart.options.indexAxis === 'y') x += 18; else y -= 12;
+          } else if (chart.config.type === 'line') { y -= 12; }
+          ctx2.save();
+          ctx2.font = '700 12px -apple-system,Segoe UI,sans-serif';
+          ctx2.textAlign = 'center'; ctx2.textBaseline = 'middle';
+          ctx2.strokeStyle = 'rgba(0,0,0,0.7)'; ctx2.lineWidth = 3; ctx2.lineJoin = 'round';
+          ctx2.strokeText(text, x, y);
+          ctx2.fillStyle = '#fff';
+          ctx2.fillText(text, x, y);
+          ctx2.restore();
+        });
+      });
+    }
+  };
+  const merged = { ...baseOpts, ...extraOpts };
+  if (!merged.plugins) merged.plugins = {};
+  tv.charts[canvasId] = new Chart(ctx, { type, data, options: merged, plugins: [tvDataLabelsPlugin] });
 }
 
 function tvBuildCharts() {
   const dark = '#9aa5b8';
-  const grid = '#1a2235';
-  const opts = (indexAxis) => ({
-    responsive: true, maintainAspectRatio: false, animation: { duration: 600 },
-    plugins: { legend: { display: false }, tooltip: { enabled: false }, datalabels: undefined },
-    scales: {
-      x: { ticks: { color: dark, font: { size: 13 } }, grid: { display: indexAxis === 'y' ? false : true, color: grid } },
-      y: { ticks: { color: dark, font: { size: 13 } }, grid: { display: indexAxis !== 'y', color: grid }, beginAtZero: true }
-    }
-  });
-
-  const makeChart = (id, config) => {
-    if (tv.charts[id]) { try { tv.charts[id].destroy(); } catch(e){} }
-    const ctx = document.getElementById(`tv-chart-${id}`);
-    if (!ctx) return;
-    tv.charts[id] = new Chart(ctx, config);
+  // Esconde eixos para doughnut
+  const donutExtra = {
+    cutout: '52%',
+    scales: { x: { display: false }, y: { display: false } },
+    plugins: { legend: { display: true, position: 'right', labels: { color: dark, font: { size: 12 }, padding: 14 } } }
   };
 
-  // copiar dados dos charts existentes
-  if (charts['drivers-rank']) {
-    const src = charts['drivers-rank'];
-    makeChart('perf-1', { type: 'bar', data: JSON.parse(JSON.stringify(src.data)), options: { ...opts('y'), indexAxis: 'y' } });
-  }
-  if (charts['div']) {
-    const src = charts['div'];
-    makeChart('perf-2', { type: 'bar', data: JSON.parse(JSON.stringify(src.data)), options: opts('x') });
-  }
-  if (charts['plates']) {
-    const src = charts['plates'];
-    makeChart('perf-3', { type: 'bar', data: JSON.parse(JSON.stringify(src.data)), options: opts('x') });
-  }
-  if (charts['materials']) {
-    const src = charts['materials'];
-    const donutOpts = { responsive: true, maintainAspectRatio: false, animation: { duration: 600 }, cutout: '55%',
-      plugins: { legend: { display: true, position: 'right', labels: { color: dark, font: { size: 13 }, padding: 16 } }, tooltip: { enabled: false } },
-      scales: { x: { display: false }, y: { display: false } } };
-    makeChart('perf-4', { type: 'doughnut', data: JSON.parse(JSON.stringify(src.data)), options: donutOpts });
-  }
-  if (charts['daily']) {
-    const src = charts['daily'];
-    const data = JSON.parse(JSON.stringify(src.data));
-    data.datasets[0].pointRadius = 0;
-    makeChart('perf-5', { type: 'line', data, options: { ...opts('x'), plugins: { legend: { display: false }, tooltip: { enabled: false } } } });
-  }
+  // PERFORMANCE
+  tvMakeChart('tvc-perf-0', 'bar', tvCloneData(charts['drivers-rank']),
+    { indexAxis: 'y', scales: { x: { ticks: { color: dark, font:{size:12} }, grid:{color:'rgba(255,255,255,0.05)'} }, y: { ticks: { color: dark, font:{size:11} }, grid:{display:false} } } });
 
-  // canal tempo
-  if (chartsTempo['carriers']) {
-    const src = chartsTempo['carriers'];
-    makeChart('tempo-1', { type: 'bar', data: JSON.parse(JSON.stringify(src.data)), options: { ...opts('y'), indexAxis: 'y' } });
-  }
-  if (chartsTempo['plates']) {
-    const src = chartsTempo['plates'];
-    makeChart('tempo-2', { type: 'bar', data: JSON.parse(JSON.stringify(src.data)), options: opts('x') });
-  }
-  if (chartsTempo['dist']) {
-    const src = chartsTempo['dist'];
-    makeChart('tempo-3', { type: 'bar', data: JSON.parse(JSON.stringify(src.data)), options: opts('x') });
-  }
-  if (chartsTempo['materials']) {
-    const src = chartsTempo['materials'];
-    const donutOpts = { responsive: true, maintainAspectRatio: false, animation: { duration: 600 }, cutout: '55%',
-      plugins: { legend: { display: true, position: 'right', labels: { color: dark, font: { size: 13 }, padding: 16 } }, tooltip: { enabled: false } },
-      scales: { x: { display: false }, y: { display: false } } };
-    makeChart('tempo-4', { type: 'doughnut', data: JSON.parse(JSON.stringify(src.data)), options: donutOpts });
-  }
-  if (chartsTempo['daily']) {
-    const src = chartsTempo['daily'];
-    const data = JSON.parse(JSON.stringify(src.data));
-    data.datasets[0].pointRadius = 0;
-    makeChart('tempo-5', { type: 'line', data, options: { ...opts('x'), plugins: { legend: { display: false }, tooltip: { enabled: false } } } });
-  }
+  tvMakeChart('tvc-perf-1a', 'bar', tvCloneData(charts['div']), {});
+  tvMakeChart('tvc-perf-1b', 'bar', tvCloneData(charts['plates']), {});
+
+  const dailyDataPerf = tvCloneData(charts['daily']);
+  if (dailyDataPerf) dailyDataPerf.datasets.forEach(d => d.pointRadius = 0);
+  tvMakeChart('tvc-perf-1c', 'line', dailyDataPerf,
+    { plugins: { legend: { display: false } }, elements: { line: { tension: 0.25 } } });
+
+  // TEMPO
+  tvMakeChart('tvc-tempo-0', 'bar', tvCloneData(chartsTempo['carriers']),
+    { indexAxis: 'y', scales: { x: { ticks: { color: dark, font:{size:12} }, grid:{color:'rgba(255,255,255,0.05)'} }, y: { ticks: { color: dark, font:{size:11} }, grid:{display:false} } } });
+
+  tvMakeChart('tvc-tempo-1a', 'bar', tvCloneData(chartsTempo['plates']), {});
+  tvMakeChart('tvc-tempo-1b', 'bar', tvCloneData(chartsTempo['dist']), {});
+
+  const dailyDataTempo = tvCloneData(chartsTempo['daily']);
+  if (dailyDataTempo) dailyDataTempo.datasets.forEach(d => d.pointRadius = 0);
+  tvMakeChart('tvc-tempo-1c', 'line', dailyDataTempo,
+    { plugins: { legend: { display: false } }, elements: { line: { tension: 0.25 } } });
 }
 /* ==================== FIM MODO TV ==================== */
 
