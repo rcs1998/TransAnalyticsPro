@@ -286,15 +286,15 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
   display: flex; flex-direction: column; gap: 0;
   border-right: 1px solid rgba(255,255,255,0.07);
   padding: 20px 20px 20px 28px;
-  justify-content: center;
+  justify-content: space-between;
 }
 .tv-kpi-card {
   padding: 16px 18px; border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 .tv-kpi-card:last-child { border-bottom: none; }
-.tv-kpi-label { font-size: 10px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+.tv-kpi-label { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
 .tv-kpi-value { font-size: 34px; font-weight: 900; line-height: 1; }
-.tv-kpi-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.tv-kpi-sub { font-size: 11px; color: rgba(255,255,255,0.42); margin-top: 2px; }
 
 .tv-chart-panel {
   display: flex; flex-direction: column;
@@ -306,7 +306,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
 .tv-chart-panel:last-child { border-right: none; }
 .tv-chart-panel.full { grid-column: 1 / -1; border-right: none; }
 .tv-chart-panel.full-row { grid-column: 1 / -1; border-right: none; }
-.tv-chart-label { font-size: 12px; font-weight: 700; color: var(--text-2); margin-bottom: 10px; flex-shrink: 0; letter-spacing: 0.01em; }
+.tv-chart-label { font-size: 13px; font-weight: 800; color: rgba(255,255,255,0.86); margin-bottom: 10px; flex-shrink: 0; letter-spacing: 0.01em; }
 .tv-chart-inner { flex: 1; position: relative; min-height: 0; }
 .tv-chart-inner canvas { position: absolute; inset: 0; }
 
@@ -409,13 +409,14 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
     <div class="tv-slide tv-slide-kpi" id="tv-s-perf-0">
       <div class="tv-kpi-col">
         <div class="tv-kpi-card"><div class="tv-kpi-label">Volume Total</div><div class="tv-kpi-value" id="tv-k-vol" style="color:var(--accent)">—</div><div class="tv-kpi-sub" id="tv-k-vol-sub"></div></div>
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Quantidade de Viagens</div><div class="tv-kpi-value" id="tv-k-trips" style="color:var(--green)">—</div><div class="tv-kpi-sub" id="tv-k-trips-sub">no período</div></div>
         <div class="tv-kpi-card"><div class="tv-kpi-label">Motoristas</div><div class="tv-kpi-value" id="tv-k-drv" style="color:var(--blue)">—</div><div class="tv-kpi-sub">CPFs únicos</div></div>
         <div class="tv-kpi-card"><div class="tv-kpi-label">Veículos</div><div class="tv-kpi-value" id="tv-k-veh" style="color:var(--purple)">—</div><div class="tv-kpi-sub">Placas únicas</div></div>
         <div class="tv-kpi-card"><div class="tv-kpi-label">Divergências</div><div class="tv-kpi-value" id="tv-k-div" style="color:var(--coral)">—</div><div class="tv-kpi-sub">Pesagens críticas</div></div>
         <div class="tv-kpi-card"><div class="tv-kpi-label">Eficiência</div><div class="tv-kpi-value" id="tv-k-eff" style="color:var(--amber)">—</div><div class="tv-kpi-sub">Média por viagem</div></div>
       </div>
       <div class="tv-chart-panel" style="border-right:none; border-bottom:none">
-        <div class="tv-chart-label">Ranking de Motoristas por Transportadora</div>
+        <div class="tv-chart-label">Ranking de Transportadoras por Movimentação (Volume)</div>
         <div class="tv-chart-inner"><canvas id="tvc-perf-0"></canvas></div>
       </div>
     </div>
@@ -440,6 +441,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
     <div class="tv-slide tv-slide-kpi" id="tv-s-tempo-0">
       <div class="tv-kpi-col">
         <div class="tv-kpi-card"><div class="tv-kpi-label">Tempo Médio na Usina</div><div class="tv-kpi-value" id="tv-k-tmed" style="color:var(--accent);font-size:30px">—</div><div class="tv-kpi-sub">HH:MM</div></div>
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Quantidade de Viagens</div><div class="tv-kpi-value" id="tv-k-treg" style="color:var(--green)">—</div><div class="tv-kpi-sub">registros no período</div></div>
         <div class="tv-kpi-card"><div class="tv-kpi-label">Tempo Entre Pesos</div><div class="tv-kpi-value" id="tv-k-tpes" style="color:var(--blue);font-size:30px">—</div><div class="tv-kpi-sub">tara → bruto</div></div>
         <div class="tv-kpi-card"><div class="tv-kpi-label">Veículos</div><div class="tv-kpi-value" id="tv-k-tveh" style="color:var(--purple)">—</div><div class="tv-kpi-sub">Placas únicas</div></div>
         <div class="tv-kpi-card"><div class="tv-kpi-label">Transportadoras</div><div class="tv-kpi-value" id="tv-k-tcar" style="color:var(--green)">—</div><div class="tv-kpi-sub">identificadas</div></div>
@@ -1108,11 +1110,14 @@ function tvBuildKPIs() {
   const s = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
   s('tv-k-vol',   g('kpi-weight').replace(/\s+/g,'') );
   s('tv-k-vol-sub', g('kpi-records'));
+  s('tv-k-trips', g('kpi-trips'));
+  s('tv-k-trips-sub', document.getElementById('kpi-trips-sub')?.innerText || 'no período');
   s('tv-k-drv',   g('kpi-drivers'));
   s('tv-k-veh',   g('kpi-vehicles'));
   s('tv-k-div',   g('kpi-div'));
   s('tv-k-eff',   g('kpi-avg'));
   s('tv-k-tmed',  g('kpi-tempo-medio'));
+  s('tv-k-treg',  g('kpi-tempo-registros').replace(/\s*registros\s*/i, ''));
   s('tv-k-tpes',  g('kpi-tempo-entrepesos'));
   s('tv-k-tveh',  g('kpi-tempo-vehicles'));
   s('tv-k-tcar',  g('kpi-tempo-carriers'));
@@ -1132,13 +1137,14 @@ function tvMakeChart(canvasId, type, data, extraOpts) {
   const ctx = document.getElementById(canvasId);
   if (!ctx) return;
   if (tv.charts[canvasId]) { try { tv.charts[canvasId].destroy(); } catch(e){} }
-  const dark = '#9aa5b8', gridC = 'rgba(255,255,255,0.05)';
+  const dark = '#c7d0dd', gridC = 'rgba(255,255,255,0.07)';
+  const valueFormat = extraOpts && extraOpts._valueFormat ? extraOpts._valueFormat : null;
   const baseOpts = {
     responsive: true, maintainAspectRatio: false, animation: { duration: 500 },
     plugins: { legend: { display: false }, customDataLabels: undefined },
     scales: {
-      x: { ticks: { color: dark, font: { size: 12 } }, grid: { color: gridC } },
-      y: { ticks: { color: dark, font: { size: 12 } }, grid: { color: gridC }, beginAtZero: true }
+      x: { ticks: { color: dark, font: { size: 12, weight: '600' } }, grid: { color: gridC } },
+      y: { ticks: { color: dark, font: { size: 12, weight: '600' } }, grid: { color: gridC }, beginAtZero: true }
     }
   };
   // rótulos de dados no TV: usa o plugin customDataLabels que já temos
@@ -1152,13 +1158,15 @@ function tvMakeChart(canvasId, type, data, extraOpts) {
         meta.data.forEach((el, idx) => {
           const val = dataset.data[idx];
           if (val === null || val === undefined || val === 0) return;
-          const text = typeof val === 'number'
-            ? (Number.isInteger(val) ? String(val) : val.toFixed(1))
-            : String(val);
+          const text = valueFormat
+            ? valueFormat(val)
+            : (typeof val === 'number'
+                ? (Number.isInteger(val) ? String(val) : val.toFixed(1))
+                : String(val));
           const pos = el.tooltipPosition ? el.tooltipPosition() : { x: el.x, y: el.y };
           let x = pos.x, y = pos.y;
           if (chart.config.type === 'bar') {
-            if (chart.options.indexAxis === 'y') x += 18; else y -= 12;
+            if (chart.options.indexAxis === 'y') x += 20; else y -= 12;
           } else if (chart.config.type === 'line') { y -= 12; }
           ctx2.save();
           ctx2.font = '700 12px -apple-system,Segoe UI,sans-serif';
@@ -1172,13 +1180,23 @@ function tvMakeChart(canvasId, type, data, extraOpts) {
       });
     }
   };
-  const merged = { ...baseOpts, ...extraOpts };
+  const cleanExtra = { ...extraOpts };
+  delete cleanExtra._valueFormat;
+  const merged = { ...baseOpts, ...cleanExtra };
   if (!merged.plugins) merged.plugins = {};
   tv.charts[canvasId] = new Chart(ctx, { type, data, options: merged, plugins: [tvDataLabelsPlugin] });
 }
 
+function tvTopCarriersByMovement(n = 10) {
+  const arr = [...(state.currentData || [])].sort((a, b) => b.weight - a.weight).slice(0, n);
+  return {
+    labels: arr.map(c => c.name.substring(0, 18)),
+    datasets: [{ label: 'Volume (t)', data: arr.map(c => +c.weight.toFixed(1)), backgroundColor: '#00c8aa' }]
+  };
+}
+
 function tvBuildCharts() {
-  const dark = '#9aa5b8';
+  const dark = '#c7d0dd';
   // Esconde eixos para doughnut
   const donutExtra = {
     cutout: '52%',
@@ -1187,8 +1205,14 @@ function tvBuildCharts() {
   };
 
   // PERFORMANCE
-  tvMakeChart('tvc-perf-0', 'bar', tvCloneData(charts['drivers-rank']),
-    { indexAxis: 'y', scales: { x: { ticks: { color: dark, font:{size:12} }, grid:{color:'rgba(255,255,255,0.05)'} }, y: { ticks: { color: dark, font:{size:11} }, grid:{display:false} } } });
+  // Slide 0: ranking de transportadoras por movimentação (volume total), não por motoristas
+  tvMakeChart('tvc-perf-0', 'bar', tvTopCarriersByMovement(10),
+    { indexAxis: 'y',
+      scales: { x: { ticks: { color: dark, font:{size:12,weight:'600'}, callback: v => v + ' t' }, grid:{color:'rgba(255,255,255,0.07)'} }, y: { ticks: { color: dark, font:{size:12,weight:'600'} }, grid:{display:false} } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `Volume: ${ctx.raw.toLocaleString('pt-BR')} t` } } },
+      onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+      onClick: (e, els) => { if (els.length) setCarrierFilter(tvTopCarriersByMovement(10).labels[els[0].index]); }
+    });
 
   tvMakeChart('tvc-perf-1a', 'bar', tvCloneData(charts['div']), {});
   tvMakeChart('tvc-perf-1b', 'bar', tvCloneData(charts['plates']), {});
@@ -1198,17 +1222,29 @@ function tvBuildCharts() {
   tvMakeChart('tvc-perf-1c', 'line', dailyDataPerf,
     { plugins: { legend: { display: false } }, elements: { line: { tension: 0.25 } } });
 
-  // TEMPO
+  // TEMPO — valores exibidos em horas (HH:MM), igual aos gráficos do dashboard
   tvMakeChart('tvc-tempo-0', 'bar', tvCloneData(chartsTempo['carriers']),
-    { indexAxis: 'y', scales: { x: { ticks: { color: dark, font:{size:12} }, grid:{color:'rgba(255,255,255,0.05)'} }, y: { ticks: { color: dark, font:{size:11} }, grid:{display:false} } } });
+    { indexAxis: 'y', _valueFormat: formatMinutes,
+      scales: { x: { ticks: { color: dark, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:'rgba(255,255,255,0.07)'} }, y: { ticks: { color: dark, font:{size:12,weight:'600'} }, grid:{display:false} } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } }
+    });
 
-  tvMakeChart('tvc-tempo-1a', 'bar', tvCloneData(chartsTempo['plates']), {});
+  tvMakeChart('tvc-tempo-1a', 'bar', tvCloneData(chartsTempo['plates']),
+    { _valueFormat: formatMinutes,
+      scales: { x: { ticks: { color: dark, font:{size:12,weight:'600'} }, grid:{display:false} }, y: { ticks: { color: dark, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:'rgba(255,255,255,0.07)'}, beginAtZero: true } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } }
+    });
+
   tvMakeChart('tvc-tempo-1b', 'bar', tvCloneData(chartsTempo['dist']), {});
 
   const dailyDataTempo = tvCloneData(chartsTempo['daily']);
   if (dailyDataTempo) dailyDataTempo.datasets.forEach(d => d.pointRadius = 0);
   tvMakeChart('tvc-tempo-1c', 'line', dailyDataTempo,
-    { plugins: { legend: { display: false } }, elements: { line: { tension: 0.25 } } });
+    { _valueFormat: formatMinutes,
+      scales: { x: { ticks: { color: dark, font:{size:12,weight:'600'} }, grid:{display:false} }, y: { ticks: { color: dark, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:'rgba(255,255,255,0.07)'}, beginAtZero: true } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } },
+      elements: { line: { tension: 0.25 } }
+    });
 }
 /* ==================== FIM MODO TV ==================== */
 
