@@ -592,6 +592,11 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
         <div class="kpi-value" id="kpi-weight">0 <small style="font-size:12px">t</small></div>
         <div class="kpi-sub" id="kpi-records">0 registros</div>
       </div>
+      <div class="kpi-card" style="--kpi-color: var(--green)">
+        <div class="kpi-label">Quantidade de Viagens</div>
+        <div class="kpi-value" id="kpi-trips">0</div>
+        <div class="kpi-sub" id="kpi-trips-sub">no período filtrado</div>
+      </div>
       <div class="kpi-card" style="--kpi-color: var(--blue)">
         <div class="kpi-label">Total Motoristas</div>
         <div class="kpi-value" id="kpi-drivers">0</div>
@@ -2185,9 +2190,24 @@ function renderIdleTable(plateStats, threshold) {
   });
 }
 
+function tripsPeriodLabel() {
+  const dateStartVal = document.getElementById('filter-date-start').value;
+  const dateEndVal = document.getElementById('filter-date-end').value;
+  if (dateStartVal || dateEndVal) {
+    const fmt = v => v ? new Date(v + 'T00:00:00').toLocaleDateString('pt-BR') : '...';
+    return `${fmt(dateStartVal)} a ${fmt(dateEndVal)}`;
+  }
+  if (state.selectedMonths.size > 0) {
+    return [...state.selectedMonths].sort().map(monthLabel).join(', ');
+  }
+  return 'todo o período carregado';
+}
+
 function updateUI(data, totals, dailyMap) {
   document.getElementById('kpi-weight').innerHTML = `${totals.weight.toLocaleString('pt-BR', {maximumFractionDigits:1})} <small style="font-size:12px">t</small>`;
   document.getElementById('kpi-records').innerText = `${totals.records} registros`;
+  document.getElementById('kpi-trips').innerText = totals.records.toLocaleString('pt-BR');
+  document.getElementById('kpi-trips-sub').innerText = tripsPeriodLabel();
   document.getElementById('kpi-drivers').innerText = totals.drivers.size;
   document.getElementById('kpi-vehicles').innerText = totals.vehicles.size;
   document.getElementById('kpi-div').innerText = totals.div;
