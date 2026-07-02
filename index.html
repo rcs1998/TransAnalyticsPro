@@ -1233,8 +1233,8 @@ const gridC_TV = 'rgba(255,255,255,0.07)';
 function tvBuildSlidePerf0() {
   const chartData = tvTopCarriersByMovement(10);
   tvMakeChart('tvc-perf-0', 'bar', chartData,
-    { indexAxis: 'y',
-      scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'}, callback: v => v + ' t' }, grid:{color:gridC_TV} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} } },
+    { indexAxis: 'y', _valueFormat: v => v.toLocaleString('pt-BR', {maximumFractionDigits:1}) + ' t',
+      scales: { x: { beginAtZero: true, grace: '12%', ticks: { color: dark_TV, font:{size:12,weight:'600'}, callback: v => v + ' t' }, grid:{color:gridC_TV} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} } },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `Volume: ${ctx.raw.toLocaleString('pt-BR')} t` } } },
       onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
       onClick: (e, els) => { if (els.length) setCarrierFilter(chartData.labels[els[0].index]); }
@@ -1254,14 +1254,17 @@ function tvBuildSlidePerf1() {
 
   tvMakeChart('tvc-perf-1b', 'bar', tvTopPlatesByTrips(10),
     { indexAxis: 'y',
-      scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{color:gridC_TV} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} } },
-      plugins: { legend: { display: false } }
+      scales: {
+        x: { beginAtZero: true, grace: '15%', ticks: { color: dark_TV, font:{size:12,weight:'600'}, stepSize: 1, precision: 0 }, grid:{color:gridC_TV} },
+        y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} }
+      },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `Viagens: ${ctx.raw}` } } }
     });
 
   const dailyDataPerf = tvCloneData(charts['daily']);
   if (dailyDataPerf) dailyDataPerf.datasets.forEach(d => d.pointRadius = 0);
   tvMakeChart('tvc-perf-1c', 'line', dailyDataPerf,
-    { scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{color:gridC_TV}, beginAtZero:true } },
+    { scales: { x: { offset: true, ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{color:gridC_TV}, beginAtZero:true } },
       plugins: { legend: { display: false } }, elements: { line: { tension: 0.25 } } });
 }
 
@@ -1269,7 +1272,10 @@ function tvBuildSlidePerf1() {
 function tvBuildSlideTempo0() {
   tvMakeChart('tvc-tempo-0', 'bar', tvCloneData(chartsTempo['carriers']),
     { indexAxis: 'y', _valueFormat: formatMinutes,
-      scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:gridC_TV} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} } },
+      scales: {
+        x: { beginAtZero: true, grace: '12%', ticks: { color: dark_TV, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:gridC_TV} },
+        y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} }
+      },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } }
     });
 }
@@ -1278,7 +1284,10 @@ function tvBuildSlideTempo0() {
 function tvBuildSlideTempo1() {
   tvMakeChart('tvc-tempo-1a', 'bar', tvTopPlatesByTime(10),
     { indexAxis: 'y', _valueFormat: formatMinutes,
-      scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:gridC_TV} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} } },
+      scales: {
+        x: { beginAtZero: true, grace: '15%', ticks: { color: dark_TV, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:gridC_TV} },
+        y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} }
+      },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } }
     });
 
@@ -1290,7 +1299,7 @@ function tvBuildSlideTempo1() {
   if (dailyDataTempo) dailyDataTempo.datasets.forEach(d => d.pointRadius = 0);
   tvMakeChart('tvc-tempo-1c', 'line', dailyDataTempo,
     { _valueFormat: formatMinutes,
-      scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:gridC_TV}, beginAtZero: true } },
+      scales: { x: { offset: true, ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'}, callback: v => formatMinutes(v) }, grid:{color:gridC_TV}, beginAtZero: true } },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw) } } },
       elements: { line: { tension: 0.25 } }
     });
