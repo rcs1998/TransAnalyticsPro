@@ -1245,8 +1245,11 @@ function tvBuildSlidePerf0() {
 function tvBuildSlidePerf1() {
   tvMakeChart('tvc-perf-1a', 'bar', tvTopDivByCarrier(10),
     { indexAxis: 'y',
-      scales: { x: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{color:gridC_TV} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} } },
-      plugins: { legend: { display: false } }
+      scales: {
+        x: { beginAtZero: true, grace: '25%', ticks: { color: dark_TV, font:{size:12,weight:'600'}, stepSize: 1, precision: 0 }, grid:{color:gridC_TV} },
+        y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} }
+      },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `Divergências: ${ctx.raw}` } } }
     });
 
   tvMakeChart('tvc-perf-1b', 'bar', tvTopPlatesByTrips(10),
