@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Viagens por Material</title>
+<style>
+  :root {
+    --bg: #06080f; --card: #0f1520; --border: #1a2235;
+    --text: #e8ecf5; --sub: #9aa5b8; --muted: #5a6478;
+    --accent: #00c8aa; --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, Segoe UI, Roboto, sans-serif; min-height: 100vh; }
+
+  /* LOGIN */
+  #login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+  .login-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 36px 32px; width: 100%; max-width: 360px; }
+  .login-card h1 { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+  .login-card p { color: var(--sub); font-size: 13px; margin-bottom: 24px; }
+  input { width: 100%; background: #161d33; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 13px; margin-bottom: 10px; }
+  .btn { width: 100%; padding: 11px; background: var(--accent); border: none; border-radius: 8px; color: #041a10; font-weight: 700; font-size: 14px; cursor: pointer; }
+  .btn:hover { opacity: 0.88; }
+  .err { font-size: 12px; color: #ff6b6b; min-height: 16px; text-align: center; margin-top: 6px; }
+
+  /* MAIN */
+  #main { display: none; }
+  .topbar { display: flex; align-items: center; gap: 14px; padding: 14px 24px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .topbar h1 { font-size: 16px; font-weight: 800; flex: 1; white-space: nowrap; }
+  .topbar select, .topbar input[type=date] { background: #161d33; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 11px; font-size: 13px; }
+  .topbar label { font-size: 12px; color: var(--sub); margin-right: 4px; }
+  .topbar-group { display: flex; align-items: center; gap: 6px; }
+  .small-btn { background: #161d33; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 14px; font-size: 12px; cursor: pointer; }
+  .small-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .logout-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--sub); padding: 7px 14px; font-size: 12px; cursor: pointer; margin-left: auto; }
+  .logout-btn:hover { color: var(--text); }
+
+  /* LOADING */
+  #loading { display: none; text-align: center; padding: 80px 24px; color: var(--sub); font-size: 14px; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* TOTAL KPI */
+  .kpi-bar { display: flex; gap: 12px; padding: 16px 24px 0; flex-wrap: wrap; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 20px; flex: 1; min-width: 140px; }
+  .kpi-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .kpi-val { font-size: 28px; font-weight: 900; margin-top: 2px; }
+  .kpi-sub { font-size: 11px; color: var(--sub); margin-top: 2px; }
+
+  /* TABLE */
+  .table-wrap { padding: 16px 24px 32px; overflow-x: auto; }
+  .search-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .search-row input { flex: 1; min-width: 180px; max-width: 320px; background: #161d33; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 12px; font-size: 13px; margin: 0; }
+  .search-row .small-btn { flex-shrink: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 420px; }
+  thead th { background: var(--card); border-bottom: 2px solid var(--border); padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; white-space: nowrap; user-select: none; }
+  thead th:hover { color: var(--accent); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.12s; }
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+  td { padding: 10px 14px; }
+  td.mat { font-weight: 600; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .bar-cell { display: flex; align-items: center; gap: 8px; }
+  .bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; min-width: 60px; }
+  .bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.4s ease; }
+  .pct { font-size: 11px; color: var(--sub); width: 38px; text-align: right; flex-shrink: 0; }
+  .empty { text-align: center; padding: 48px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <h1>Viagens por Material</h1>
+    <p>Entre com o mesmo acesso do TransAnalytics Pro.</p>
+    <input type="email" id="email" placeholder="E-mail" />
+    <input type="password" id="password" placeholder="Senha" onkeydown="if(event.key==='Enter') login()" />
+    <button class="btn" onclick="login()">Entrar</button>
+    <p class="err" id="err"></p>
+  </div>
+</div>
+
+<div id="main">
+  <div class="topbar">
+    <h1>📦 Viagens por Material</h1>
+    <div class="topbar-group">
+      <label>De</label>
+      <input type="date" id="f-start" onchange="applyFilters()" />
+    </div>
+    <div class="topbar-group">
+      <label>Até</label>
+      <input type="date" id="f-end" onchange="applyFilters()" />
+    </div>
+    <div class="topbar-group">
+      <label>Mês</label>
+      <select id="f-month" onchange="applyFilters()">
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <button class="small-btn" onclick="clearFilters()">Limpar</button>
+    <button class="small-btn" onclick="exportXLSX()">📥 Exportar</button>
+    <button class="logout-btn" onclick="auth.signOut()">Sair</button>
+  </div>
+
+  <div id="loading"><div class="spinner"></div>Carregando dados...</div>
+
+  <div id="content" style="display:none">
+    <div class="kpi-bar">
+      <div class="kpi">
+        <div class="kpi-label">Total de Viagens</div>
+        <div class="kpi-val" id="kpi-total" style="color:var(--accent)">0</div>
+        <div class="kpi-sub" id="kpi-period"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Materiais Distintos</div>
+        <div class="kpi-val" id="kpi-mats">0</div>
+        <div class="kpi-sub">no período filtrado</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Material Mais Frequente</div>
+        <div class="kpi-val" id="kpi-top" style="font-size:15px; padding-top:4px">—</div>
+        <div class="kpi-sub" id="kpi-top-n"></div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="search-row">
+        <input type="text" id="search" placeholder="Pesquisar material..." oninput="renderTable()" />
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortBy('material')">Material ▲▼</th>
+            <th onclick="sortBy('count')" class="num">Viagens ▲▼</th>
+            <th>Participação</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyCauvny8DdHEuHNJtJaaXKSnvWHHzUUBaw",
+  authDomain: "transanalyticspro.firebaseapp.com",
+  projectId: "transanalyticspro",
+  storageBucket: "transanalyticspro.firebasestorage.app",
+  messagingSenderId: "696652164052",
+  appId: "1:696652164052:web:93b9c9e3e049f3fbb20441"
+});
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let allEntries = [];   // { material, dateTs, monthKey }
+let sortCol = 'count', sortDir = 'desc';
+
+/* ---- AUTH ---- */
+function login() {
+  const e = document.getElementById('email').value.trim();
+  const p = document.getElementById('password').value;
+  document.getElementById('err').innerText = '';
+  if (!e || !p) { document.getElementById('err').innerText = 'Informe e-mail e senha.'; return; }
+  auth.signInWithEmailAndPassword(e, p).catch(() => {
+    document.getElementById('err').innerText = 'E-mail ou senha inválidos.';
+  });
+}
+
+auth.onAuthStateChanged(user => {
+  document.getElementById('login-screen').style.display = user ? 'none' : 'flex';
+  document.getElementById('main').style.display = user ? 'block' : 'none';
+  if (user) loadData();
+});
+
+/* ---- LOAD ---- */
+async function loadData() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('content').style.display = 'none';
+  allEntries = [];
+
+  try {
+    // lê os meses disponíveis primeiro (meta, 1 leitura barata)
+    const metaDoc = await db.collection('meta').doc('performance_months').get();
+    const months = metaDoc.exists ? (metaDoc.data().months || []).sort() : [];
+
+    // popula filtro de mês
+    const sel = document.getElementById('f-month');
+    sel.innerHTML = '<option value="">Todos</option>';
+    months.forEach(m => {
+      const [y, mo] = m.split('-');
+      const label = `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)-1]}/${y}`;
+      const opt = document.createElement('option'); opt.value = m; opt.textContent = label; sel.appendChild(opt);
+    });
+    // pré-seleciona o mês mais recente
+    if (months.length) sel.value = months[months.length - 1];
+
+    // carrega o mês selecionado
+    await loadMonth(sel.value || null);
+  } catch (err) {
+    document.getElementById('loading').innerText = '⚠️ Erro: ' + err.message;
+  }
+}
+
+async function loadMonth(monthKey) {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('content').style.display = 'none';
+  allEntries = [];
+
+  const query = monthKey
+    ? db.collection('performance_entries').where('monthKey', '==', monthKey)
+    : db.collection('performance_entries');
+
+  const snap = await query.get();
+  snap.forEach(doc => {
+    const d = doc.data();
+    allEntries.push({ material: (d.material || 'DIVERSOS').split('[')[0].trim(), dateTs: d.dateTs, monthKey: d.monthKey });
+  });
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+  applyFilters();
+}
+
+/* ---- FILTERS ---- */
+document.getElementById('f-month').addEventListener('change', async () => {
+  await loadMonth(document.getElementById('f-month').value || null);
+});
+
+function applyFilters() {
+  const startVal = document.getElementById('f-start').value;
+  const endVal   = document.getElementById('f-end').value;
+  const start = startVal ? new Date(startVal + 'T00:00:00').getTime() : null;
+  const end   = endVal   ? new Date(endVal   + 'T23:59:59').getTime() : null;
+
+  let filtered = allEntries;
+  if (start) filtered = filtered.filter(e => e.dateTs && e.dateTs >= start);
+  if (end)   filtered = filtered.filter(e => e.dateTs && e.dateTs <= end);
+
+  // agrega por material
+  const map = {};
+  filtered.forEach(e => { map[e.material] = (map[e.material] || 0) + 1; });
+  window._aggData = Object.entries(map).map(([material, count]) => ({ material, count }));
+
+  // KPIs
+  const total = filtered.length;
+  const top = window._aggData.sort((a,b) => b.count - a.count)[0];
+  document.getElementById('kpi-total').innerText = total.toLocaleString('pt-BR');
+  document.getElementById('kpi-mats').innerText = window._aggData.length;
+  document.getElementById('kpi-top').innerText = top ? top.material : '—';
+  document.getElementById('kpi-top-n').innerText = top ? `${top.count.toLocaleString('pt-BR')} viagens` : '';
+
+  const fmtDate = ts => ts ? new Date(ts).toLocaleDateString('pt-BR') : '';
+  const dates = filtered.map(e => e.dateTs).filter(Boolean);
+  document.getElementById('kpi-period').innerText = dates.length
+    ? `${fmtDate(Math.min(...dates))} → ${fmtDate(Math.max(...dates))}`
+    : 'todos os registros';
+
+  renderTable();
+}
+
+function clearFilters() {
+  document.getElementById('f-start').value = '';
+  document.getElementById('f-end').value = '';
+  document.getElementById('search').value = '';
+  applyFilters();
+}
+
+/* ---- TABLE ---- */
+function sortBy(col) {
+  if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortCol = col; sortDir = col === 'count' ? 'desc' : 'asc'; }
+  renderTable();
+}
+
+function renderTable() {
+  const q = document.getElementById('search').value.toLowerCase();
+  let data = (window._aggData || []).filter(r => r.material.toLowerCase().includes(q));
+  data.sort((a, b) => {
+    const va = a[sortCol], vb = b[sortCol];
+    return sortDir === 'asc' ? (va > vb ? 1 : -1) : (vb > va ? 1 : -1);
+  });
+
+  const total = data.reduce((s, r) => s + r.count, 0);
+  const max   = data.length ? data[0][sortCol === 'count' ? 'count' : 'count'] : 1;
+  const maxCount = Math.max(...data.map(r => r.count));
+
+  const tbody = document.getElementById('tbody');
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="3" class="empty">Nenhum material encontrado.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(r => {
+    const pct = total ? (r.count / total * 100).toFixed(1) : 0;
+    const barW = maxCount ? (r.count / maxCount * 100).toFixed(1) : 0;
+    return `<tr>
+      <td class="mat">${r.material}</td>
+      <td class="num">${r.count.toLocaleString('pt-BR')}</td>
+      <td>
+        <div class="bar-cell">
+          <div class="bar-track"><div class="bar-fill" style="width:${barW}%"></div></div>
+          <span class="pct">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ---- EXPORT ---- */
+function exportXLSX() {
+  const q = document.getElementById('search').value.toLowerCase();
+  let data = (window._aggData || []).filter(r => r.material.toLowerCase().includes(q));
+  data.sort((a, b) => sortDir === 'asc' ? (a[sortCol] > b[sortCol] ? 1 : -1) : (b[sortCol] > a[sortCol] ? 1 : -1));
+  const total = data.reduce((s, r) => s + r.count, 0);
+  const rows = data.map(r => ({
+    'Material': r.material,
+    'Viagens': r.count,
+    'Participação (%)': total ? +(r.count / total * 100).toFixed(2) : 0
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Viagens por Material');
+  XLSX.writeFile(wb, 'Viagens_por_Material.xlsx');
+}
+</script>
+</body>
+</html>
