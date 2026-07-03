@@ -18,53 +18,74 @@
   .login-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 36px 32px; width: 100%; max-width: 360px; }
   .login-card h1 { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
   .login-card p { color: var(--sub); font-size: 13px; margin-bottom: 24px; }
-  input { width: 100%; background: #161d33; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 13px; margin-bottom: 10px; }
-  .btn { width: 100%; padding: 11px; background: var(--accent); border: none; border-radius: 8px; color: #041a10; font-weight: 700; font-size: 14px; cursor: pointer; }
-  .btn:hover { opacity: 0.88; }
+  .login-input { width: 100%; background: #161d33; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 13px; margin-bottom: 10px; }
+  .btn-login { width: 100%; padding: 11px; background: var(--accent); border: none; border-radius: 8px; color: #041a10; font-weight: 700; font-size: 14px; cursor: pointer; }
+  .btn-login:hover { opacity: 0.88; }
   .err { font-size: 12px; color: #ff6b6b; min-height: 16px; text-align: center; margin-top: 6px; }
 
   /* MAIN */
   #main { display: none; }
-  .topbar { display: flex; align-items: center; gap: 14px; padding: 14px 24px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-  .topbar h1 { font-size: 16px; font-weight: 800; flex: 1; white-space: nowrap; }
-  .topbar select, .topbar input[type=date] { background: #161d33; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 11px; font-size: 13px; }
-  .topbar label { font-size: 12px; color: var(--sub); margin-right: 4px; }
-  .topbar-group { display: flex; align-items: center; gap: 6px; }
-  .small-btn { background: #161d33; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 14px; font-size: 12px; cursor: pointer; }
+
+  /* TOPBAR */
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .topbar h1 { font-size: 15px; font-weight: 800; white-space: nowrap; }
+  .topbar label { font-size: 11px; color: var(--sub); white-space: nowrap; }
+  .topbar input[type=date] { background: #161d33; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 6px 10px; font-size: 12px; }
+  .topbar-group { display: flex; align-items: center; gap: 5px; }
+  .small-btn { background: #161d33; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 6px 13px; font-size: 12px; cursor: pointer; white-space: nowrap; }
   .small-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .logout-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--sub); padding: 7px 14px; font-size: 12px; cursor: pointer; margin-left: auto; }
+  .small-btn.active { border-color: var(--accent); color: var(--accent); }
+  .logout-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--sub); padding: 6px 13px; font-size: 12px; cursor: pointer; margin-left: auto; }
   .logout-btn:hover { color: var(--text); }
+
+  /* FILTER PANELS */
+  .filter-panels { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+  .filter-panel { flex: 1; padding: 12px 20px; border-right: 1px solid var(--border); }
+  .filter-panel:last-child { border-right: none; }
+  .filter-panel-title { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
+  .chip-wrap { display: flex; flex-wrap: wrap; gap: 5px; max-height: 80px; overflow-y: auto; }
+  .chip { padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border); background: #161d33; color: var(--sub); font-size: 11px; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip.selected { border-color: var(--accent); background: rgba(0,200,170,0.12); color: var(--accent); font-weight: 600; }
+  .chip-actions { display: flex; gap: 8px; margin-bottom: 6px; }
+  .chip-link { font-size: 11px; color: var(--sub); cursor: pointer; text-decoration: underline; }
+  .chip-link:hover { color: var(--accent); }
 
   /* LOADING */
   #loading { display: none; text-align: center; padding: 80px 24px; color: var(--sub); font-size: 14px; }
-  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* TOTAL KPI */
-  .kpi-bar { display: flex; gap: 12px; padding: 16px 24px 0; flex-wrap: wrap; }
-  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 20px; flex: 1; min-width: 140px; }
+  /* KPIs */
+  .kpi-bar { display: flex; gap: 10px; padding: 14px 20px 0; flex-wrap: wrap; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 18px; flex: 1; min-width: 130px; }
   .kpi-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-  .kpi-val { font-size: 28px; font-weight: 900; margin-top: 2px; }
+  .kpi-val { font-size: 26px; font-weight: 900; margin-top: 2px; }
   .kpi-sub { font-size: 11px; color: var(--sub); margin-top: 2px; }
 
   /* TABLE */
-  .table-wrap { padding: 16px 24px 32px; overflow-x: auto; }
-  .search-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-  .search-row input { flex: 1; min-width: 180px; max-width: 320px; background: #161d33; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 12px; font-size: 13px; margin: 0; }
-  .search-row .small-btn { flex-shrink: 0; }
+  .table-wrap { padding: 14px 20px 32px; overflow-x: auto; }
+  .table-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .table-controls input[type=text] { flex: 1; min-width: 180px; max-width: 300px; background: #161d33; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 12px; font-size: 12px; }
+  .record-count { font-size: 11px; color: var(--muted); margin-left: auto; white-space: nowrap; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 420px; }
   thead th { background: var(--card); border-bottom: 2px solid var(--border); padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; white-space: nowrap; user-select: none; }
   thead th:hover { color: var(--accent); }
+  thead th.sorted { color: var(--accent); }
   tbody tr { border-bottom: 1px solid var(--border); transition: background 0.12s; }
   tbody tr:hover { background: rgba(255,255,255,0.03); }
-  td { padding: 10px 14px; }
-  td.mat { font-weight: 600; }
+  td { padding: 9px 14px; }
+  td.mat { font-weight: 600; max-width: 320px; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .bar-cell { display: flex; align-items: center; gap: 8px; }
   .bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; min-width: 60px; }
   .bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.4s ease; }
-  .pct { font-size: 11px; color: var(--sub); width: 38px; text-align: right; flex-shrink: 0; }
+  .pct { font-size: 11px; color: var(--sub); width: 40px; text-align: right; flex-shrink: 0; }
   .empty { text-align: center; padding: 48px; color: var(--muted); font-size: 13px; }
+  @media (max-width: 700px) {
+    .filter-panels { flex-direction: column; }
+    .filter-panel { border-right: none; border-bottom: 1px solid var(--border); }
+  }
 </style>
 </head>
 <body>
@@ -73,14 +94,15 @@
   <div class="login-card">
     <h1>Viagens por Material</h1>
     <p>Entre com o mesmo acesso do TransAnalytics Pro.</p>
-    <input type="email" id="email" placeholder="E-mail" />
-    <input type="password" id="password" placeholder="Senha" onkeydown="if(event.key==='Enter') login()" />
-    <button class="btn" onclick="login()">Entrar</button>
+    <input class="login-input" type="email" id="email" placeholder="E-mail" />
+    <input class="login-input" type="password" id="password" placeholder="Senha" onkeydown="if(event.key==='Enter') login()" />
+    <button class="btn-login" onclick="login()">Entrar</button>
     <p class="err" id="err"></p>
   </div>
 </div>
 
 <div id="main">
+  <!-- TOPBAR -->
   <div class="topbar">
     <h1>📦 Viagens por Material</h1>
     <div class="topbar-group">
@@ -91,18 +113,35 @@
       <label>Até</label>
       <input type="date" id="f-end" onchange="applyFilters()" />
     </div>
-    <div class="topbar-group">
-      <label>Mês</label>
-      <select id="f-month" onchange="applyFilters()">
-        <option value="">Todos</option>
-      </select>
-    </div>
-    <button class="small-btn" onclick="clearFilters()">Limpar</button>
-    <button class="small-btn" onclick="exportXLSX()">📥 Exportar</button>
+    <button class="small-btn" id="btn-load-all" onclick="loadAllMonths()" title="Carrega todos os meses disponíveis">Carregar todos os meses</button>
+    <button class="small-btn" onclick="clearFilters()">Limpar filtros</button>
+    <button class="small-btn" onclick="exportXLSX()">📥 Exportar Excel</button>
     <button class="logout-btn" onclick="auth.signOut()">Sair</button>
   </div>
 
-  <div id="loading"><div class="spinner"></div>Carregando dados...</div>
+  <!-- FILTER PANELS: meses + materiais -->
+  <div class="filter-panels">
+    <div class="filter-panel" style="max-width:380px; flex:0 0 auto;">
+      <div class="filter-panel-title">Meses</div>
+      <div class="chip-actions">
+        <span class="chip-link" onclick="selectAllMonths()">Todos</span>
+        <span class="chip-link" onclick="clearMonths()">Nenhum</span>
+      </div>
+      <div class="chip-wrap" id="month-chips"></div>
+    </div>
+    <div class="filter-panel">
+      <div class="filter-panel-title">Material</div>
+      <div class="chip-actions">
+        <span class="chip-link" onclick="selectAllMaterials()">Todos</span>
+        <span class="chip-link" onclick="clearMaterials()">Nenhum</span>
+        <input type="text" id="mat-search" placeholder="Buscar..." oninput="renderMaterialChips()"
+          style="margin-left:auto; background:#161d33; border:1px solid var(--border); border-radius:6px; color:var(--text); padding:2px 8px; font-size:11px; width:130px;" />
+      </div>
+      <div class="chip-wrap" id="material-chips"></div>
+    </div>
+  </div>
+
+  <div id="loading"><div class="spinner"></div><span id="loading-msg">Carregando dados...</span></div>
 
   <div id="content" style="display:none">
     <div class="kpi-bar">
@@ -114,24 +153,30 @@
       <div class="kpi">
         <div class="kpi-label">Materiais Distintos</div>
         <div class="kpi-val" id="kpi-mats">0</div>
-        <div class="kpi-sub">no período filtrado</div>
+        <div class="kpi-sub">no período selecionado</div>
       </div>
       <div class="kpi">
         <div class="kpi-label">Material Mais Frequente</div>
-        <div class="kpi-val" id="kpi-top" style="font-size:15px; padding-top:4px">—</div>
+        <div class="kpi-val" id="kpi-top" style="font-size:14px; padding-top:6px; line-height:1.3">—</div>
         <div class="kpi-sub" id="kpi-top-n"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Meses Carregados</div>
+        <div class="kpi-val" id="kpi-loaded-months" style="font-size:20px; padding-top:6px">0</div>
+        <div class="kpi-sub" id="kpi-loaded-months-sub"></div>
       </div>
     </div>
 
     <div class="table-wrap">
-      <div class="search-row">
+      <div class="table-controls">
         <input type="text" id="search" placeholder="Pesquisar material..." oninput="renderTable()" />
+        <span class="record-count" id="record-count"></span>
       </div>
       <table>
         <thead>
           <tr>
-            <th onclick="sortBy('material')">Material ▲▼</th>
-            <th onclick="sortBy('count')" class="num">Viagens ▲▼</th>
+            <th onclick="sortBy('material')" id="th-material">Material</th>
+            <th onclick="sortBy('count')" id="th-count" class="num sorted">Viagens ↓</th>
             <th>Participação</th>
           </tr>
         </thead>
@@ -157,7 +202,12 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let allEntries = [];   // { material, dateTs, monthKey }
+let allMonths = [];
+let loadedMonths = new Set();          // meses já no cache
+let entriesByMonth = {};               // monthKey -> [entries]
+let selectedMonths = new Set();
+let selectedMaterials = new Set();
+let allMaterials = [];
 let sortCol = 'count', sortDir = 'desc';
 
 /* ---- AUTH ---- */
@@ -170,103 +220,211 @@ function login() {
     document.getElementById('err').innerText = 'E-mail ou senha inválidos.';
   });
 }
-
 auth.onAuthStateChanged(user => {
   document.getElementById('login-screen').style.display = user ? 'none' : 'flex';
   document.getElementById('main').style.display = user ? 'block' : 'none';
-  if (user) loadData();
+  if (user) init();
 });
 
-/* ---- LOAD ---- */
-async function loadData() {
-  document.getElementById('loading').style.display = 'block';
-  document.getElementById('content').style.display = 'none';
-  allEntries = [];
-
+/* ---- INIT ---- */
+async function init() {
+  showLoading('Carregando lista de meses...');
   try {
-    // lê os meses disponíveis primeiro (meta, 1 leitura barata)
     const metaDoc = await db.collection('meta').doc('performance_months').get();
-    const months = metaDoc.exists ? (metaDoc.data().months || []).sort() : [];
+    allMonths = metaDoc.exists ? (metaDoc.data().months || []).slice().sort() : [];
 
-    // popula filtro de mês
-    const sel = document.getElementById('f-month');
-    sel.innerHTML = '<option value="">Todos</option>';
-    months.forEach(m => {
-      const [y, mo] = m.split('-');
-      const label = `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)-1]}/${y}`;
-      const opt = document.createElement('option'); opt.value = m; opt.textContent = label; sel.appendChild(opt);
-    });
-    // pré-seleciona o mês mais recente
-    if (months.length) sel.value = months[months.length - 1];
+    renderMonthChips();
 
-    // carrega o mês selecionado
-    await loadMonth(sel.value || null);
+    // carrega mês mais recente por padrão
+    const latest = allMonths[allMonths.length - 1];
+    if (latest) {
+      selectedMonths.add(latest);
+      await loadMonthData(latest);
+    }
+    hideLoading();
+    rebuildMaterials();
+    applyFilters();
   } catch (err) {
-    document.getElementById('loading').innerText = '⚠️ Erro: ' + err.message;
+    document.getElementById('loading-msg').innerText = '⚠️ Erro: ' + err.message;
   }
 }
 
-async function loadMonth(monthKey) {
-  document.getElementById('loading').style.display = 'block';
-  document.getElementById('content').style.display = 'none';
-  allEntries = [];
-
-  const query = monthKey
-    ? db.collection('performance_entries').where('monthKey', '==', monthKey)
-    : db.collection('performance_entries');
-
-  const snap = await query.get();
+/* ---- LOAD MONTH DATA ---- */
+async function loadMonthData(monthKey) {
+  if (loadedMonths.has(monthKey)) return;
+  showLoading(`Carregando ${monthLabel(monthKey)}...`);
+  const snap = await db.collection('performance_entries').where('monthKey', '==', monthKey).get();
+  entriesByMonth[monthKey] = [];
   snap.forEach(doc => {
     const d = doc.data();
-    allEntries.push({ material: (d.material || 'DIVERSOS').split('[')[0].trim(), dateTs: d.dateTs, monthKey: d.monthKey });
+    entriesByMonth[monthKey].push({
+      material: (d.material || 'DIVERSOS').split('[')[0].trim(),
+      dateTs: d.dateTs,
+      monthKey: d.monthKey
+    });
   });
+  loadedMonths.add(monthKey);
+}
 
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('content').style.display = 'block';
+async function loadAllMonths() {
+  document.getElementById('btn-load-all').innerText = 'Carregando...';
+  document.getElementById('btn-load-all').disabled = true;
+  for (const m of allMonths) {
+    await loadMonthData(m);
+  }
+  selectedMonths = new Set(allMonths);
+  document.getElementById('btn-load-all').innerText = 'Todos os meses carregados';
+  document.getElementById('btn-load-all').disabled = true;
+  hideLoading();
+  rebuildMaterials();
+  renderMonthChips();
   applyFilters();
 }
 
-/* ---- FILTERS ---- */
-document.getElementById('f-month').addEventListener('change', async () => {
-  await loadMonth(document.getElementById('f-month').value || null);
-});
+/* ---- MONTH CHIPS ---- */
+function monthLabel(m) {
+  const [y, mo] = m.split('-');
+  return `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)-1]}/${y}`;
+}
 
+function renderMonthChips() {
+  const wrap = document.getElementById('month-chips');
+  wrap.innerHTML = '';
+  allMonths.forEach(m => {
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (selectedMonths.has(m) ? ' selected' : '');
+    chip.innerText = monthLabel(m);
+    chip.title = loadedMonths.has(m) ? 'Carregado' : 'Clique para carregar';
+    chip.onclick = async () => {
+      if (selectedMonths.has(m)) {
+        selectedMonths.delete(m);
+      } else {
+        selectedMonths.add(m);
+        if (!loadedMonths.has(m)) {
+          await loadMonthData(m);
+          hideLoading();
+          rebuildMaterials();
+        }
+      }
+      renderMonthChips();
+      applyFilters();
+    };
+    wrap.appendChild(chip);
+  });
+}
+
+function selectAllMonths() {
+  allMonths.forEach(m => selectedMonths.add(m));
+  renderMonthChips();
+  applyFilters();
+}
+function clearMonths() {
+  selectedMonths.clear();
+  renderMonthChips();
+  applyFilters();
+}
+
+/* ---- MATERIAL CHIPS ---- */
+function rebuildMaterials() {
+  const matSet = new Set();
+  for (const m of loadedMonths) {
+    (entriesByMonth[m] || []).forEach(e => matSet.add(e.material));
+  }
+  allMaterials = Array.from(matSet).sort();
+  // mantém apenas seleções válidas
+  selectedMaterials = new Set([...selectedMaterials].filter(m => matSet.has(m)));
+  renderMaterialChips();
+}
+
+function renderMaterialChips() {
+  const q = document.getElementById('mat-search').value.toLowerCase();
+  const wrap = document.getElementById('material-chips');
+  wrap.innerHTML = '';
+  allMaterials.filter(m => !q || m.toLowerCase().includes(q)).forEach(m => {
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (selectedMaterials.has(m) ? ' selected' : '');
+    chip.innerText = m;
+    chip.onclick = () => {
+      if (selectedMaterials.has(m)) selectedMaterials.delete(m);
+      else selectedMaterials.add(m);
+      renderMaterialChips();
+      applyFilters();
+    };
+    wrap.appendChild(chip);
+  });
+}
+
+function selectAllMaterials() {
+  allMaterials.forEach(m => selectedMaterials.add(m));
+  renderMaterialChips(); applyFilters();
+}
+function clearMaterials() {
+  selectedMaterials.clear();
+  renderMaterialChips(); applyFilters();
+}
+
+/* ---- FILTERS ---- */
 function applyFilters() {
   const startVal = document.getElementById('f-start').value;
   const endVal   = document.getElementById('f-end').value;
   const start = startVal ? new Date(startVal + 'T00:00:00').getTime() : null;
   const end   = endVal   ? new Date(endVal   + 'T23:59:59').getTime() : null;
 
-  let filtered = allEntries;
+  // reúne entradas dos meses selecionados (que já foram carregados)
+  let filtered = [];
+  for (const m of selectedMonths) {
+    if (loadedMonths.has(m)) filtered.push(...(entriesByMonth[m] || []));
+  }
+
+  // filtros de data
   if (start) filtered = filtered.filter(e => e.dateTs && e.dateTs >= start);
   if (end)   filtered = filtered.filter(e => e.dateTs && e.dateTs <= end);
 
-  // agrega por material
+  // filtro de material
+  if (selectedMaterials.size > 0) {
+    filtered = filtered.filter(e => selectedMaterials.has(e.material));
+  }
+
+  // agrega
   const map = {};
   filtered.forEach(e => { map[e.material] = (map[e.material] || 0) + 1; });
   window._aggData = Object.entries(map).map(([material, count]) => ({ material, count }));
 
   // KPIs
   const total = filtered.length;
-  const top = window._aggData.sort((a,b) => b.count - a.count)[0];
+  const sorted = [...window._aggData].sort((a,b) => b.count - a.count);
+  const top = sorted[0];
   document.getElementById('kpi-total').innerText = total.toLocaleString('pt-BR');
   document.getElementById('kpi-mats').innerText = window._aggData.length;
   document.getElementById('kpi-top').innerText = top ? top.material : '—';
   document.getElementById('kpi-top-n').innerText = top ? `${top.count.toLocaleString('pt-BR')} viagens` : '';
 
-  const fmtDate = ts => ts ? new Date(ts).toLocaleDateString('pt-BR') : '';
+  const loadedSel = [...selectedMonths].filter(m => loadedMonths.has(m)).sort();
+  document.getElementById('kpi-loaded-months').innerText = loadedSel.length;
+  document.getElementById('kpi-loaded-months-sub').innerText = loadedSel.length
+    ? `${monthLabel(loadedSel[0])} → ${monthLabel(loadedSel[loadedSel.length-1])}`
+    : 'nenhum selecionado';
+
   const dates = filtered.map(e => e.dateTs).filter(Boolean);
   document.getElementById('kpi-period').innerText = dates.length
     ? `${fmtDate(Math.min(...dates))} → ${fmtDate(Math.max(...dates))}`
-    : 'todos os registros';
+    : '—';
 
+  document.getElementById('content').style.display = total > 0 || selectedMonths.size > 0 ? 'block' : 'none';
   renderTable();
+}
+
+function fmtDate(ts) {
+  return ts ? new Date(ts).toLocaleDateString('pt-BR') : '';
 }
 
 function clearFilters() {
   document.getElementById('f-start').value = '';
   document.getElementById('f-end').value = '';
   document.getElementById('search').value = '';
+  document.getElementById('mat-search').value = '';
+  selectedMaterials.clear();
+  renderMaterialChips();
   applyFilters();
 }
 
@@ -274,6 +432,17 @@ function clearFilters() {
 function sortBy(col) {
   if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
   else { sortCol = col; sortDir = col === 'count' ? 'desc' : 'asc'; }
+  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
+  const arrow = sortDir === 'desc' ? ' ↓' : ' ↑';
+  if (col === 'material') {
+    document.getElementById('th-material').classList.add('sorted');
+    document.getElementById('th-material').innerText = 'Material' + arrow;
+    document.getElementById('th-count').innerText = 'Viagens';
+  } else {
+    document.getElementById('th-count').classList.add('sorted');
+    document.getElementById('th-count').innerText = 'Viagens' + arrow;
+    document.getElementById('th-material').innerText = 'Material';
+  }
   renderTable();
 }
 
@@ -285,18 +454,19 @@ function renderTable() {
     return sortDir === 'asc' ? (va > vb ? 1 : -1) : (vb > va ? 1 : -1);
   });
 
+  document.getElementById('record-count').innerText = `${data.length} material${data.length !== 1 ? 'is' : ''}`;
+
   const total = data.reduce((s, r) => s + r.count, 0);
-  const max   = data.length ? data[0][sortCol === 'count' ? 'count' : 'count'] : 1;
-  const maxCount = Math.max(...data.map(r => r.count));
+  const maxCount = data.length ? Math.max(...data.map(r => r.count)) : 1;
 
   const tbody = document.getElementById('tbody');
   if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="3" class="empty">Nenhum material encontrado.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="3" class="empty">Nenhum material encontrado para os filtros selecionados.</td></tr>`;
     return;
   }
   tbody.innerHTML = data.map(r => {
     const pct = total ? (r.count / total * 100).toFixed(1) : 0;
-    const barW = maxCount ? (r.count / maxCount * 100).toFixed(1) : 0;
+    const barW = (r.count / maxCount * 100).toFixed(1);
     return `<tr>
       <td class="mat">${r.material}</td>
       <td class="num">${r.count.toLocaleString('pt-BR')}</td>
@@ -308,6 +478,16 @@ function renderTable() {
       </td>
     </tr>`;
   }).join('');
+}
+
+/* ---- HELPERS ---- */
+function showLoading(msg) {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('loading-msg').innerText = msg || 'Carregando...';
+}
+function hideLoading() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
 }
 
 /* ---- EXPORT ---- */
