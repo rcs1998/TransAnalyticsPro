@@ -267,7 +267,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
 
 /* SLIDE LAYOUTS */
 .tv-slide-kpi {
-  grid-template-rows: auto 1fr;
+  grid-template-rows: 1fr;
   grid-template-columns: 340px 1fr;
   gap: 0; padding: 0;
 }
@@ -1661,17 +1661,17 @@ function updateDataScopeBanner(latestPerfMonth, latestTempoMonth, perfLastDate, 
   // atualiza o indicador no header com a última data de cada base
   const fileInfo = document.getElementById('header-filename');
   if (fileInfo) {
-    const perfStr = perfLastDate ? `Performance até <strong>${fmtDate(perfLastDate)}</strong>` : '';
-    const tempoStr = tempoLastDate ? `Tempo na Usina até <strong>${fmtDate(tempoLastDate)}</strong>` : '';
+    const perfStr = perfLastDate ? `Performance: <strong>${fmtDate(perfLastDate)}</strong>` : '';
+    const tempoStr = tempoLastDate ? `Tempo na Usina: <strong>${fmtDate(tempoLastDate)}</strong>` : '';
     const parts = [perfStr, tempoStr].filter(Boolean).join(' &nbsp;·&nbsp; ');
-    fileInfo.innerHTML = parts || 'Base sincronizada';
+    fileInfo.innerHTML = parts ? `Última atualização &nbsp;—&nbsp; ${parts}` : 'Base sincronizada';
   }
   // atualiza datas compactas no header mobile
   const mobileDates = document.getElementById('mobile-dates');
   if (mobileDates) {
     mobileDates.innerText = [
-      perfLastDate ? `Perf. até ${fmtDate(perfLastDate)}` : '',
-      tempoLastDate ? `Usina até ${fmtDate(tempoLastDate)}` : ''
+      perfLastDate ? `Atualizado (Perf.): ${fmtDate(perfLastDate)}` : '',
+      tempoLastDate ? `Atualizado (Usina): ${fmtDate(tempoLastDate)}` : ''
     ].filter(Boolean).join(' · ');
   }
   // sincroniza label de tema na gaveta
@@ -2302,24 +2302,30 @@ function renderIdleTable(plateStats, threshold) {
   });
 }
 
-function tripsPeriodLabel() {
+function tripsPeriodLabel(dailyMap) {
   const dateStartVal = document.getElementById('filter-date-start').value;
   const dateEndVal = document.getElementById('filter-date-end').value;
   if (dateStartVal || dateEndVal) {
     const fmt = v => v ? new Date(v + 'T00:00:00').toLocaleDateString('pt-BR') : '...';
     return `${fmt(dateStartVal)} a ${fmt(dateEndVal)}`;
   }
+  // sem filtro de data manual: usa o intervalo real das datas presentes nos registros exibidos
+  const keys = dailyMap ? Object.keys(dailyMap).sort() : [];
+  if (keys.length) {
+    const fmtK = k => { const [y,m,d] = k.split('-'); return `${d}/${m}/${y}`; };
+    return keys.length === 1 ? fmtK(keys[0]) : `${fmtK(keys[0])} a ${fmtK(keys[keys.length - 1])}`;
+  }
   if (state.selectedMonths.size > 0) {
     return [...state.selectedMonths].sort().map(monthLabel).join(', ');
   }
-  return 'todo o período carregado';
+  return 'sem dados no período';
 }
 
 function updateUI(data, totals, dailyMap) {
   document.getElementById('kpi-weight').innerHTML = `${totals.weight.toLocaleString('pt-BR', {maximumFractionDigits:1})} <small style="font-size:12px">t</small>`;
   document.getElementById('kpi-records').innerText = `${totals.records} registros`;
   document.getElementById('kpi-trips').innerText = totals.records.toLocaleString('pt-BR');
-  document.getElementById('kpi-trips-sub').innerText = tripsPeriodLabel();
+  document.getElementById('kpi-trips-sub').innerText = tripsPeriodLabel(dailyMap);
   document.getElementById('kpi-drivers').innerText = totals.drivers.size;
   document.getElementById('kpi-vehicles').innerText = totals.vehicles.size;
   document.getElementById('kpi-div').innerText = totals.div;
