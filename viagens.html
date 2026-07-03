@@ -27,29 +27,37 @@
   #main { display: none; }
 
   /* TOPBAR */
-  .topbar { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; background: var(--card); }
   .topbar h1 { font-size: 15px; font-weight: 800; white-space: nowrap; }
   .topbar label { font-size: 11px; color: var(--sub); white-space: nowrap; }
   .topbar input[type=date] { background: #161d33; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 6px 10px; font-size: 12px; }
   .topbar-group { display: flex; align-items: center; gap: 5px; }
   .small-btn { background: #161d33; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 6px 13px; font-size: 12px; cursor: pointer; white-space: nowrap; }
   .small-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .small-btn.active { border-color: var(--accent); color: var(--accent); }
   .logout-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--sub); padding: 6px 13px; font-size: 12px; cursor: pointer; margin-left: auto; }
   .logout-btn:hover { color: var(--text); }
 
-  /* FILTER PANELS */
-  .filter-panels { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
-  .filter-panel { flex: 1; padding: 12px 20px; border-right: 1px solid var(--border); }
-  .filter-panel:last-child { border-right: none; }
-  .filter-panel-title { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
-  .chip-wrap { display: flex; flex-wrap: wrap; gap: 5px; max-height: 80px; overflow-y: auto; }
-  .chip { padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border); background: #161d33; color: var(--sub); font-size: 11px; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
-  .chip:hover { border-color: var(--accent); color: var(--accent); }
-  .chip.selected { border-color: var(--accent); background: rgba(0,200,170,0.12); color: var(--accent); font-weight: 600; }
-  .chip-actions { display: flex; gap: 8px; margin-bottom: 6px; }
-  .chip-link { font-size: 11px; color: var(--sub); cursor: pointer; text-decoration: underline; }
-  .chip-link:hover { color: var(--accent); }
+  /* FILTERS BAR — mesmo estilo do dashboard */
+  .filters-bar { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: var(--bg); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .filter-group { display: flex; flex-direction: column; gap: 3px; }
+  .filter-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+
+  /* multi-select dropdown */
+  .ms { position: relative; }
+  .ms-btn { display: flex; align-items: center; gap: 8px; background: #161d33; border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; color: var(--text); font-size: 12px; cursor: pointer; white-space: nowrap; min-width: 160px; }
+  .ms-btn:hover { border-color: var(--accent); }
+  .ms-btn.active { border-color: var(--accent); color: var(--accent); }
+  .ms-btn svg { margin-left: auto; flex-shrink: 0; }
+  .ms-dropdown { display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 200; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 6px 0; min-width: 220px; max-height: 280px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .ms-dropdown.open { display: block; }
+  .ms-search { margin: 6px 10px 4px; width: calc(100% - 20px); background: #161d33; border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 5px 9px; font-size: 12px; }
+  .ms-actions { display: flex; gap: 10px; padding: 4px 12px 6px; border-bottom: 1px solid var(--border); }
+  .ms-link { font-size: 11px; color: var(--sub); cursor: pointer; text-decoration: underline; }
+  .ms-link:hover { color: var(--accent); }
+  .ms-item { display: flex; align-items: center; gap: 8px; padding: 7px 12px; cursor: pointer; font-size: 12px; }
+  .ms-item:hover { background: rgba(255,255,255,0.04); }
+  .ms-item input { flex-shrink: 0; accent-color: var(--accent); }
+  .ms-item.hidden { display: none; }
 
   /* LOADING */
   #loading { display: none; text-align: center; padding: 80px 24px; color: var(--sub); font-size: 14px; }
@@ -70,22 +78,17 @@
   .record-count { font-size: 11px; color: var(--muted); margin-left: auto; white-space: nowrap; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 420px; }
   thead th { background: var(--card); border-bottom: 2px solid var(--border); padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; white-space: nowrap; user-select: none; }
-  thead th:hover { color: var(--accent); }
-  thead th.sorted { color: var(--accent); }
-  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.12s; }
+  thead th:hover, thead th.sorted { color: var(--accent); }
+  tbody tr { border-bottom: 1px solid var(--border); }
   tbody tr:hover { background: rgba(255,255,255,0.03); }
   td { padding: 9px 14px; }
-  td.mat { font-weight: 600; max-width: 320px; }
+  td.mat { font-weight: 600; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .bar-cell { display: flex; align-items: center; gap: 8px; }
   .bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; min-width: 60px; }
   .bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.4s ease; }
   .pct { font-size: 11px; color: var(--sub); width: 40px; text-align: right; flex-shrink: 0; }
   .empty { text-align: center; padding: 48px; color: var(--muted); font-size: 13px; }
-  @media (max-width: 700px) {
-    .filter-panels { flex-direction: column; }
-    .filter-panel { border-right: none; border-bottom: 1px solid var(--border); }
-  }
 </style>
 </head>
 <body>
@@ -105,40 +108,61 @@
   <!-- TOPBAR -->
   <div class="topbar">
     <h1>📦 Viagens por Material</h1>
-    <div class="topbar-group">
-      <label>De</label>
-      <input type="date" id="f-start" onchange="applyFilters()" />
-    </div>
-    <div class="topbar-group">
-      <label>Até</label>
-      <input type="date" id="f-end" onchange="applyFilters()" />
-    </div>
-    <button class="small-btn" id="btn-load-all" onclick="loadAllMonths()" title="Carrega todos os meses disponíveis">Carregar todos os meses</button>
-    <button class="small-btn" onclick="clearFilters()">Limpar filtros</button>
-    <button class="small-btn" onclick="exportXLSX()">📥 Exportar Excel</button>
     <button class="logout-btn" onclick="auth.signOut()">Sair</button>
   </div>
 
-  <!-- FILTER PANELS: meses + materiais -->
-  <div class="filter-panels">
-    <div class="filter-panel" style="max-width:380px; flex:0 0 auto;">
-      <div class="filter-panel-title">Meses</div>
-      <div class="chip-actions">
-        <span class="chip-link" onclick="selectAllMonths()">Todos</span>
-        <span class="chip-link" onclick="clearMonths()">Nenhum</span>
+  <!-- FILTERS BAR -->
+  <div class="filters-bar">
+    <!-- Meses -->
+    <div class="filter-group">
+      <span class="filter-label">Mês</span>
+      <div class="ms" id="ms-month">
+        <button class="ms-btn" onclick="toggleMS('ms-month')">
+          <span id="month-label">Mês mais recente</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="ms-dropdown" id="month-dropdown">
+          <div class="ms-actions">
+            <span class="ms-link" onclick="selectAllMonths()">Todos</span>
+            <span class="ms-link" onclick="clearMonths()">Nenhum</span>
+            <span class="ms-link" onclick="loadAllMonths()" style="margin-left:auto">Carregar todos</span>
+          </div>
+          <div id="month-list"></div>
+        </div>
       </div>
-      <div class="chip-wrap" id="month-chips"></div>
     </div>
-    <div class="filter-panel">
-      <div class="filter-panel-title">Material</div>
-      <div class="chip-actions">
-        <span class="chip-link" onclick="selectAllMaterials()">Todos</span>
-        <span class="chip-link" onclick="clearMaterials()">Nenhum</span>
-        <input type="text" id="mat-search" placeholder="Buscar..." oninput="renderMaterialChips()"
-          style="margin-left:auto; background:#161d33; border:1px solid var(--border); border-radius:6px; color:var(--text); padding:2px 8px; font-size:11px; width:130px;" />
+
+    <!-- Material -->
+    <div class="filter-group">
+      <span class="filter-label">Material</span>
+      <div class="ms" id="ms-material">
+        <button class="ms-btn" onclick="toggleMS('ms-material')">
+          <span id="material-label">Todos os materiais</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="ms-dropdown" id="material-dropdown">
+          <input class="ms-search" type="text" id="mat-search" placeholder="Buscar material..." oninput="filterMatList()" />
+          <div class="ms-actions">
+            <span class="ms-link" onclick="selectAllMaterials()">Todos</span>
+            <span class="ms-link" onclick="clearMaterials()">Nenhum</span>
+          </div>
+          <div id="material-list"></div>
+        </div>
       </div>
-      <div class="chip-wrap" id="material-chips"></div>
     </div>
+
+    <!-- Datas -->
+    <div class="filter-group">
+      <span class="filter-label">De</span>
+      <input type="date" id="f-start" onchange="applyFilters()" style="background:#161d33;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 10px;font-size:12px;" />
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Até</span>
+      <input type="date" id="f-end" onchange="applyFilters()" style="background:#161d33;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 10px;font-size:12px;" />
+    </div>
+
+    <button class="small-btn" onclick="clearFilters()" style="margin-top:14px">Limpar</button>
+    <button class="small-btn" onclick="exportXLSX()" style="margin-top:14px">📥 Exportar Excel</button>
   </div>
 
   <div id="loading"><div class="spinner"></div><span id="loading-msg">Carregando dados...</span></div>
@@ -161,15 +185,15 @@
         <div class="kpi-sub" id="kpi-top-n"></div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">Meses Carregados</div>
-        <div class="kpi-val" id="kpi-loaded-months" style="font-size:20px; padding-top:6px">0</div>
-        <div class="kpi-sub" id="kpi-loaded-months-sub"></div>
+        <div class="kpi-label">Meses Selecionados</div>
+        <div class="kpi-val" id="kpi-months" style="font-size:20px; padding-top:6px">0</div>
+        <div class="kpi-sub" id="kpi-months-sub"></div>
       </div>
     </div>
 
     <div class="table-wrap">
       <div class="table-controls">
-        <input type="text" id="search" placeholder="Pesquisar material..." oninput="renderTable()" />
+        <input type="text" id="search" placeholder="Pesquisar material na tabela..." oninput="renderTable()" />
         <span class="record-count" id="record-count"></span>
       </div>
       <table>
@@ -203,8 +227,8 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let allMonths = [];
-let loadedMonths = new Set();          // meses já no cache
-let entriesByMonth = {};               // monthKey -> [entries]
+let loadedMonths = new Set();
+let entriesByMonth = {};
 let selectedMonths = new Set();
 let selectedMaterials = new Set();
 let allMaterials = [];
@@ -226,16 +250,24 @@ auth.onAuthStateChanged(user => {
   if (user) init();
 });
 
+/* ---- DROPDOWN TOGGLE ---- */
+function toggleMS(id) {
+  const dd = document.getElementById(id).querySelector('.ms-dropdown');
+  const wasOpen = dd.classList.contains('open');
+  document.querySelectorAll('.ms-dropdown.open').forEach(el => el.classList.remove('open'));
+  if (!wasOpen) dd.classList.add('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ms')) document.querySelectorAll('.ms-dropdown.open').forEach(el => el.classList.remove('open'));
+});
+
 /* ---- INIT ---- */
 async function init() {
   showLoading('Carregando lista de meses...');
   try {
     const metaDoc = await db.collection('meta').doc('performance_months').get();
     allMonths = metaDoc.exists ? (metaDoc.data().months || []).slice().sort() : [];
-
-    renderMonthChips();
-
-    // carrega mês mais recente por padrão
+    renderMonthList();
     const latest = allMonths[allMonths.length - 1];
     if (latest) {
       selectedMonths.add(latest);
@@ -243,13 +275,14 @@ async function init() {
     }
     hideLoading();
     rebuildMaterials();
+    renderMonthList();
     applyFilters();
   } catch (err) {
     document.getElementById('loading-msg').innerText = '⚠️ Erro: ' + err.message;
   }
 }
 
-/* ---- LOAD MONTH DATA ---- */
+/* ---- LOAD ---- */
 async function loadMonthData(monthKey) {
   if (loadedMonths.has(monthKey)) return;
   showLoading(`Carregando ${monthLabel(monthKey)}...`);
@@ -259,108 +292,123 @@ async function loadMonthData(monthKey) {
     const d = doc.data();
     entriesByMonth[monthKey].push({
       material: (d.material || 'DIVERSOS').split('[')[0].trim(),
-      dateTs: d.dateTs,
-      monthKey: d.monthKey
+      dateTs: d.dateTs
     });
   });
   loadedMonths.add(monthKey);
 }
 
 async function loadAllMonths() {
-  document.getElementById('btn-load-all').innerText = 'Carregando...';
-  document.getElementById('btn-load-all').disabled = true;
-  for (const m of allMonths) {
-    await loadMonthData(m);
-  }
+  document.querySelectorAll('.ms-dropdown.open').forEach(el => el.classList.remove('open'));
+  for (const m of allMonths) await loadMonthData(m);
   selectedMonths = new Set(allMonths);
-  document.getElementById('btn-load-all').innerText = 'Todos os meses carregados';
-  document.getElementById('btn-load-all').disabled = true;
   hideLoading();
   rebuildMaterials();
-  renderMonthChips();
+  renderMonthList();
   applyFilters();
 }
 
-/* ---- MONTH CHIPS ---- */
+/* ---- MONTH LIST ---- */
 function monthLabel(m) {
   const [y, mo] = m.split('-');
   return `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)-1]}/${y}`;
 }
 
-function renderMonthChips() {
-  const wrap = document.getElementById('month-chips');
-  wrap.innerHTML = '';
+function renderMonthList() {
+  const list = document.getElementById('month-list');
+  list.innerHTML = '';
   allMonths.forEach(m => {
-    const chip = document.createElement('span');
-    chip.className = 'chip' + (selectedMonths.has(m) ? ' selected' : '');
-    chip.innerText = monthLabel(m);
-    chip.title = loadedMonths.has(m) ? 'Carregado' : 'Clique para carregar';
-    chip.onclick = async () => {
-      if (selectedMonths.has(m)) {
-        selectedMonths.delete(m);
-      } else {
+    const div = document.createElement('div');
+    div.className = 'ms-item';
+    const loaded = loadedMonths.has(m);
+    div.innerHTML = `<input type="checkbox" value="${m}" ${selectedMonths.has(m) ? 'checked' : ''}> <span>${monthLabel(m)}</span>${!loaded ? ' <span style="font-size:10px;color:var(--muted);margin-left:auto">↓ carregar</span>' : ''}`;
+    div.onclick = async (e) => {
+      const cb = div.querySelector('input');
+      if (e.target !== cb) cb.checked = !cb.checked;
+      if (cb.checked) {
         selectedMonths.add(m);
         if (!loadedMonths.has(m)) {
           await loadMonthData(m);
           hideLoading();
           rebuildMaterials();
+          renderMonthList();
         }
+      } else {
+        selectedMonths.delete(m);
       }
-      renderMonthChips();
+      updateMonthLabel();
       applyFilters();
     };
-    wrap.appendChild(chip);
+    list.appendChild(div);
   });
+  updateMonthLabel();
 }
 
-function selectAllMonths() {
-  allMonths.forEach(m => selectedMonths.add(m));
-  renderMonthChips();
-  applyFilters();
-}
-function clearMonths() {
-  selectedMonths.clear();
-  renderMonthChips();
-  applyFilters();
+function updateMonthLabel() {
+  const el = document.getElementById('month-label');
+  const btn = document.querySelector('#ms-month .ms-btn');
+  if (selectedMonths.size === 0) { el.innerText = 'Nenhum mês'; btn.classList.remove('active'); }
+  else if (selectedMonths.size === allMonths.length) { el.innerText = 'Todos os meses'; btn.classList.add('active'); }
+  else if (selectedMonths.size === 1) { el.innerText = monthLabel([...selectedMonths][0]); btn.classList.add('active'); }
+  else { el.innerText = `${selectedMonths.size} meses`; btn.classList.add('active'); }
 }
 
-/* ---- MATERIAL CHIPS ---- */
+function selectAllMonths() { allMonths.forEach(m => selectedMonths.add(m)); renderMonthList(); applyFilters(); }
+function clearMonths() { selectedMonths.clear(); renderMonthList(); applyFilters(); }
+
+/* ---- MATERIAL LIST ---- */
 function rebuildMaterials() {
   const matSet = new Set();
-  for (const m of loadedMonths) {
-    (entriesByMonth[m] || []).forEach(e => matSet.add(e.material));
-  }
+  for (const m of loadedMonths) (entriesByMonth[m] || []).forEach(e => matSet.add(e.material));
   allMaterials = Array.from(matSet).sort();
-  // mantém apenas seleções válidas
   selectedMaterials = new Set([...selectedMaterials].filter(m => matSet.has(m)));
-  renderMaterialChips();
+  renderMaterialList();
 }
 
-function renderMaterialChips() {
-  const q = document.getElementById('mat-search').value.toLowerCase();
-  const wrap = document.getElementById('material-chips');
-  wrap.innerHTML = '';
-  allMaterials.filter(m => !q || m.toLowerCase().includes(q)).forEach(m => {
-    const chip = document.createElement('span');
-    chip.className = 'chip' + (selectedMaterials.has(m) ? ' selected' : '');
-    chip.innerText = m;
-    chip.onclick = () => {
-      if (selectedMaterials.has(m)) selectedMaterials.delete(m);
-      else selectedMaterials.add(m);
-      renderMaterialChips();
+function renderMaterialList() {
+  const list = document.getElementById('material-list');
+  list.innerHTML = '';
+  allMaterials.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'ms-item';
+    div.dataset.mat = m.toLowerCase();
+    div.innerHTML = `<input type="checkbox" value="${m}" ${selectedMaterials.has(m) ? 'checked' : ''}> <span>${m}</span>`;
+    div.onclick = (e) => {
+      const cb = div.querySelector('input');
+      if (e.target !== cb) cb.checked = !cb.checked;
+      if (cb.checked) selectedMaterials.add(m); else selectedMaterials.delete(m);
+      updateMaterialLabel();
       applyFilters();
     };
-    wrap.appendChild(chip);
+    list.appendChild(div);
   });
+  filterMatList();
+  updateMaterialLabel();
+}
+
+function filterMatList() {
+  const q = document.getElementById('mat-search').value.toLowerCase();
+  document.querySelectorAll('#material-list .ms-item').forEach(item => {
+    item.classList.toggle('hidden', q && !item.dataset.mat.includes(q));
+  });
+}
+
+function updateMaterialLabel() {
+  const el = document.getElementById('material-label');
+  const btn = document.querySelector('#ms-material .ms-btn');
+  if (selectedMaterials.size === 0) { el.innerText = 'Todos os materiais'; btn.classList.remove('active'); }
+  else { el.innerText = `${selectedMaterials.size} selecionado${selectedMaterials.size > 1 ? 's' : ''}`; btn.classList.add('active'); }
 }
 
 function selectAllMaterials() {
   allMaterials.forEach(m => selectedMaterials.add(m));
-  renderMaterialChips(); applyFilters();
+  document.querySelectorAll('#material-list input').forEach(cb => cb.checked = true);
+  updateMaterialLabel(); applyFilters();
 }
 function clearMaterials() {
   selectedMaterials.clear();
-  renderMaterialChips(); applyFilters();
+  document.querySelectorAll('#material-list input').forEach(cb => cb.checked = false);
+  updateMaterialLabel(); applyFilters();
 }
 
 /* ---- FILTERS ---- */
@@ -370,98 +418,74 @@ function applyFilters() {
   const start = startVal ? new Date(startVal + 'T00:00:00').getTime() : null;
   const end   = endVal   ? new Date(endVal   + 'T23:59:59').getTime() : null;
 
-  // reúne entradas dos meses selecionados (que já foram carregados)
   let filtered = [];
   for (const m of selectedMonths) {
     if (loadedMonths.has(m)) filtered.push(...(entriesByMonth[m] || []));
   }
-
-  // filtros de data
   if (start) filtered = filtered.filter(e => e.dateTs && e.dateTs >= start);
   if (end)   filtered = filtered.filter(e => e.dateTs && e.dateTs <= end);
+  if (selectedMaterials.size > 0) filtered = filtered.filter(e => selectedMaterials.has(e.material));
 
-  // filtro de material
-  if (selectedMaterials.size > 0) {
-    filtered = filtered.filter(e => selectedMaterials.has(e.material));
-  }
-
-  // agrega
   const map = {};
   filtered.forEach(e => { map[e.material] = (map[e.material] || 0) + 1; });
   window._aggData = Object.entries(map).map(([material, count]) => ({ material, count }));
 
-  // KPIs
   const total = filtered.length;
-  const sorted = [...window._aggData].sort((a,b) => b.count - a.count);
-  const top = sorted[0];
+  const top = [...window._aggData].sort((a,b) => b.count - a.count)[0];
   document.getElementById('kpi-total').innerText = total.toLocaleString('pt-BR');
   document.getElementById('kpi-mats').innerText = window._aggData.length;
   document.getElementById('kpi-top').innerText = top ? top.material : '—';
   document.getElementById('kpi-top-n').innerText = top ? `${top.count.toLocaleString('pt-BR')} viagens` : '';
 
-  const loadedSel = [...selectedMonths].filter(m => loadedMonths.has(m)).sort();
-  document.getElementById('kpi-loaded-months').innerText = loadedSel.length;
-  document.getElementById('kpi-loaded-months-sub').innerText = loadedSel.length
-    ? `${monthLabel(loadedSel[0])} → ${monthLabel(loadedSel[loadedSel.length-1])}`
-    : 'nenhum selecionado';
+  const selLoaded = [...selectedMonths].filter(m => loadedMonths.has(m)).sort();
+  document.getElementById('kpi-months').innerText = selLoaded.length;
+  document.getElementById('kpi-months-sub').innerText = selLoaded.length
+    ? (selLoaded.length === 1 ? monthLabel(selLoaded[0]) : `${monthLabel(selLoaded[0])} → ${monthLabel(selLoaded[selLoaded.length-1])}`)
+    : '—';
 
   const dates = filtered.map(e => e.dateTs).filter(Boolean);
   document.getElementById('kpi-period').innerText = dates.length
-    ? `${fmtDate(Math.min(...dates))} → ${fmtDate(Math.max(...dates))}`
-    : '—';
+    ? `${fmtDate(Math.min(...dates))} → ${fmtDate(Math.max(...dates))}` : '—';
 
-  document.getElementById('content').style.display = total > 0 || selectedMonths.size > 0 ? 'block' : 'none';
+  document.getElementById('content').style.display = 'block';
   renderTable();
 }
 
-function fmtDate(ts) {
-  return ts ? new Date(ts).toLocaleDateString('pt-BR') : '';
-}
+function fmtDate(ts) { return ts ? new Date(ts).toLocaleDateString('pt-BR') : ''; }
 
 function clearFilters() {
   document.getElementById('f-start').value = '';
   document.getElementById('f-end').value = '';
   document.getElementById('search').value = '';
   document.getElementById('mat-search').value = '';
-  selectedMaterials.clear();
-  renderMaterialChips();
-  applyFilters();
+  clearMaterials();
 }
 
 /* ---- TABLE ---- */
 function sortBy(col) {
   if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
   else { sortCol = col; sortDir = col === 'count' ? 'desc' : 'asc'; }
-  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
   const arrow = sortDir === 'desc' ? ' ↓' : ' ↑';
-  if (col === 'material') {
-    document.getElementById('th-material').classList.add('sorted');
-    document.getElementById('th-material').innerText = 'Material' + arrow;
-    document.getElementById('th-count').innerText = 'Viagens';
-  } else {
-    document.getElementById('th-count').classList.add('sorted');
-    document.getElementById('th-count').innerText = 'Viagens' + arrow;
-    document.getElementById('th-material').innerText = 'Material';
-  }
+  document.getElementById('th-material').className = col === 'material' ? 'sorted' : '';
+  document.getElementById('th-count').className = 'num' + (col === 'count' ? ' sorted' : '');
+  document.getElementById('th-material').innerText = 'Material' + (col === 'material' ? arrow : '');
+  document.getElementById('th-count').innerText = 'Viagens' + (col === 'count' ? arrow : '');
   renderTable();
 }
 
 function renderTable() {
   const q = document.getElementById('search').value.toLowerCase();
   let data = (window._aggData || []).filter(r => r.material.toLowerCase().includes(q));
-  data.sort((a, b) => {
-    const va = a[sortCol], vb = b[sortCol];
-    return sortDir === 'asc' ? (va > vb ? 1 : -1) : (vb > va ? 1 : -1);
-  });
+  data.sort((a, b) => sortDir === 'asc' ? (a[sortCol] > b[sortCol] ? 1 : -1) : (b[sortCol] > a[sortCol] ? 1 : -1));
 
   document.getElementById('record-count').innerText = `${data.length} material${data.length !== 1 ? 'is' : ''}`;
 
   const total = data.reduce((s, r) => s + r.count, 0);
   const maxCount = data.length ? Math.max(...data.map(r => r.count)) : 1;
-
   const tbody = document.getElementById('tbody');
+
   if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="3" class="empty">Nenhum material encontrado para os filtros selecionados.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="3" class="empty">Nenhum material encontrado.</td></tr>`;
     return;
   }
   tbody.innerHTML = data.map(r => {
@@ -470,12 +494,7 @@ function renderTable() {
     return `<tr>
       <td class="mat">${r.material}</td>
       <td class="num">${r.count.toLocaleString('pt-BR')}</td>
-      <td>
-        <div class="bar-cell">
-          <div class="bar-track"><div class="bar-fill" style="width:${barW}%"></div></div>
-          <span class="pct">${pct}%</span>
-        </div>
-      </td>
+      <td><div class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${barW}%"></div></div><span class="pct">${pct}%</span></div></td>
     </tr>`;
   }).join('');
 }
@@ -483,7 +502,8 @@ function renderTable() {
 /* ---- HELPERS ---- */
 function showLoading(msg) {
   document.getElementById('loading').style.display = 'block';
-  document.getElementById('loading-msg').innerText = msg || 'Carregando...';
+  document.getElementById('loading-msg').innerText = msg;
+  document.getElementById('content').style.display = 'none';
 }
 function hideLoading() {
   document.getElementById('loading').style.display = 'none';
