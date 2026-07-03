@@ -1185,9 +1185,9 @@ function tvMakeChart(canvasId, type, data, extraOpts) {
             : (typeof val === 'number'
                 ? (Number.isInteger(val) ? String(val) : val.toFixed(1))
                 : String(val));
-          let x, y;
+          let x, y, align = 'center';
           if (chart.config.type === 'bar') {
-            if (chart.options.indexAxis === 'y') { x = el.x + 20; y = el.y; }
+            if (chart.options.indexAxis === 'y') { x = el.x + 10; y = el.y; align = 'left'; }
             else { x = el.x; y = el.y - 12; }
           } else {
             const pos = el.tooltipPosition ? el.tooltipPosition() : { x: el.x, y: el.y };
@@ -1196,7 +1196,7 @@ function tvMakeChart(canvasId, type, data, extraOpts) {
           }
           ctx2.save();
           ctx2.font = '700 12px -apple-system,Segoe UI,sans-serif';
-          ctx2.textAlign = 'center'; ctx2.textBaseline = 'middle';
+          ctx2.textAlign = align; ctx2.textBaseline = 'middle';
           ctx2.strokeStyle = 'rgba(0,0,0,0.7)'; ctx2.lineWidth = 3; ctx2.lineJoin = 'round';
           ctx2.strokeText(text, x, y);
           ctx2.fillStyle = '#fff';
@@ -1248,7 +1248,7 @@ const gridC_TV = 'rgba(255,255,255,0.07)';
 function tvBuildSlidePerf0() {
   const chartData = tvTopCarriersByMovement(10);
   tvMakeChart('tvc-perf-0', 'bar', chartData,
-    { indexAxis: 'y', _valueFormat: v => v.toLocaleString('pt-BR', {maximumFractionDigits:1}) + ' t',
+    { indexAxis: 'y', _valueFormat: v => v.toLocaleString('pt-BR', {maximumFractionDigits:1}),
       layout: { padding: { right: 36 } },
       scales: { x: { beginAtZero: true, grace: '12%', ticks: { color: dark_TV, font:{size:12,weight:'600'}, callback: v => v + ' t' }, grid:{color:gridC_TV} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} } },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `Volume: ${ctx.raw.toLocaleString('pt-BR')} t` } } },
