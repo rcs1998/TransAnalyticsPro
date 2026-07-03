@@ -356,7 +356,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
       <svg id="theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
       <span id="theme-label">Tema Claro</span>
     </button>
-    <a class="btn" href="https://rcs1998.github.io/TransAnalyticsPro/viagens" target="_blank" rel="noopener">📦 Viagens por Material</a>
+    <a class="btn" id="btn-viagens-material" style="display:none" href="https://rcs1998.github.io/TransAnalyticsPro/viagens" target="_blank" rel="noopener">📦 Viagens por Material</a>
     <button class="btn" id="btn-export-excel" style="display:none" onclick="exportCurrent()">Exportar Excel</button>
     <button class="btn" id="btn-export-page" style="display:none" onclick="exportPageAsPNG()">🖼️ Exportar Página</button>
     <button class="btn" id="btn-tv" style="display:none" onclick="openTVMode()">📺 TV</button>
@@ -370,7 +370,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
   <div class="mobile-drawer-section">Navegação</div>
   <button class="mobile-drawer-item" onclick="switchPage('performance'); toggleMobileDrawer()">📦 Performance Transportadoras</button>
   <button class="mobile-drawer-item" onclick="switchPage('tempo'); toggleMobileDrawer()">⏱️ Tempo na Usina</button>
-  <a class="mobile-drawer-item" href="https://rcs1998.github.io/TransAnalyticsPro/viagens" target="_blank" rel="noopener" style="display:block; text-decoration:none">📦 Viagens por Material</a>
+  <button class="mobile-drawer-item" onclick="window.open('https://rcs1998.github.io/TransAnalyticsPro/viagens','_blank'); toggleMobileDrawer()">📦 Viagens por Material</button>
   <div class="mobile-drawer-section">Exportar</div>
   <button class="mobile-drawer-item" onclick="exportCurrent(); toggleMobileDrawer()">📊 Exportar Excel</button>
   <button class="mobile-drawer-item" onclick="exportPageAsPNG(); toggleMobileDrawer()">🖼️ Exportar Página</button>
@@ -854,6 +854,17 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
         <div class="chart-title">Distribuição de Tempos na Usina</div>
         <div class="chart-container-sub">
           <canvas id="chart-tempo-distribution"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-grid-main">
+      <div class="chart-card" style="grid-column: 1 / -1;">
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-hourly', 'movimentacao_por_hora.png', 'Movimentação e Tempo Médio por Hora do Dia')" title="Exportar imagem">⬇</button>
+        <div class="chart-title">Movimentação e Tempo Médio por Hora do Dia</div>
+        <div class="chart-card-hint">Barras: quantidade de veículos · Linha: tempo médio de permanência (HH:MM)</div>
+        <div class="chart-container-sub">
+          <canvas id="chart-tempo-hourly"></canvas>
         </div>
       </div>
     </div>
@@ -1451,7 +1462,7 @@ function showUploadScreen() {
 }
 
 auth.onAuthStateChanged(user => {
-  const loggedInEls = ['btn-update-base', 'btn-logout', 'btn-export-excel', 'btn-export-page', 'btn-tv', 'header-file-info'];
+  const loggedInEls = ['btn-update-base', 'btn-logout', 'btn-export-excel', 'btn-export-page', 'btn-tv', 'header-file-info', 'btn-viagens-material'];
   if (user) {
     document.getElementById('login-screen').style.display = 'none';
     loggedInEls.forEach(id => {
@@ -2683,6 +2694,7 @@ function applyFiltersTempo() {
   const plateAgg = new Map();
   const materialCount = {};
   const dailyAgg = {};
+  const hourlyAgg = Array.from({ length: 24 }, () => ({ sum: 0, count: 0 }));
   let totalSum = 0, totalCount = 0, maxTempo = 0, criticalCount = 0;
   let entrePesosSum = 0, entrePesosCount = 0;
   const vehicles = new Set();
@@ -2713,6 +2725,9 @@ function applyFiltersTempo() {
       const dayKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       if (!dailyAgg[dayKey]) dailyAgg[dayKey] = { sum: 0, count: 0 };
       dailyAgg[dayKey].sum += e.tempoUsina; dailyAgg[dayKey].count++;
+
+      const h = d.getHours();
+      hourlyAgg[h].sum += e.tempoUsina; hourlyAgg[h].count++;
     }
   });
 
@@ -2720,7 +2735,7 @@ function applyFiltersTempo() {
   if (search) carrierData = carrierData.filter(c => c.name.toLowerCase().includes(search));
   stateTempo.currentData = carrierData;
 
-  const totals = { totalSum, totalCount, maxTempo, criticalCount, entrePesosSum, entrePesosCount, vehicles, carrierAgg, materialCount, plateAgg, dailyAgg };
+  const totals = { totalSum, totalCount, maxTempo, criticalCount, entrePesosSum, entrePesosCount, vehicles, carrierAgg, materialCount, plateAgg, dailyAgg, hourlyAgg };
   updateUITempo(totals, filteredEntries, criticalThresholdMin);
 
   document.getElementById('plate-chip-tempo').style.display = stateTempo.selectedPlate ? 'flex' : 'none';
@@ -2783,6 +2798,39 @@ function renderChartsTempo(totals, filteredEntries) {
   const dayKeys = Object.keys(totals.dailyAgg).sort();
   if (chartsTempo.daily) chartsTempo.daily.destroy();
   chartsTempo.daily = new Chart(document.getElementById('chart-tempo-daily'), { type: 'line', data: { labels: dayKeys.map(k => { const [y,m,d] = k.split('-'); return `${d}/${m}`; }), datasets: [{ label: 'Tempo Médio (min)', data: dayKeys.map(k => +(totals.dailyAgg[k].sum/totals.dailyAgg[k].count).toFixed(1)), borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', fill: true, tension: 0.25, pointRadius: dayKeys.length > 60 ? 0 : 3 }] }, options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, ticks: { ...commonOptions.scales.y.ticks, callback: v => v + ' min' } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw), title: (items) => { const idx = items[0].dataIndex; return dayKeys[idx]; } } } } } });
+
+  // Movimentação e tempo médio por hora do dia (barras = veículos, linha = tempo médio)
+  const hourLabels = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2,'0')}:00`);
+  const hourCounts = totals.hourlyAgg.map(h => h.count);
+  const hourAvg = totals.hourlyAgg.map(h => h.count > 0 ? +(h.sum / h.count).toFixed(1) : null);
+  if (chartsTempo.hourly) chartsTempo.hourly.destroy();
+  chartsTempo.hourly = new Chart(document.getElementById('chart-tempo-hourly'), {
+    type: 'bar',
+    data: {
+      labels: hourLabels,
+      datasets: [
+        { type: 'bar', label: 'Veículos', data: hourCounts, backgroundColor: 'rgba(72,149,239,0.55)', borderRadius: 3, yAxisID: 'y', order: 2 },
+        { type: 'line', label: 'Tempo Médio', data: hourAvg, borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', tension: 0.3, spanGaps: true, pointRadius: 3, pointBackgroundColor: '#00c8aa', yAxisID: 'y1', order: 1 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#9aa5b8', font: { size: 11 }, boxWidth: 12 } },
+        tooltip: { callbacks: {
+          label: (ctx) => ctx.dataset.yAxisID === 'y1'
+            ? `Tempo médio: ${ctx.raw === null ? '--:--' : formatMinutes(ctx.raw)}`
+            : `Veículos: ${ctx.raw}`
+        } }
+      },
+      scales: {
+        x: { ticks: { color: '#9aa5b8', font: { size: 10 } }, grid: { display: false } },
+        y: { position: 'left', beginAtZero: true, ticks: { color: '#9aa5b8', font: { size: 10 }, precision: 0 }, grid: { color: '#1a2235' }, title: { display: true, text: 'Veículos', color: '#9aa5b8', font: { size: 10 } } },
+        y1: { position: 'right', beginAtZero: true, ticks: { color: '#00c8aa', font: { size: 10 }, callback: v => formatMinutes(v) }, grid: { display: false }, title: { display: true, text: 'Tempo médio', color: '#00c8aa', font: { size: 10 } } }
+      }
+    }
+  });
   setupResizeObserver();
 }
 function renderCarrierTableTempo() {
