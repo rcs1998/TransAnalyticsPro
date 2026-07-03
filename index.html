@@ -271,6 +271,11 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
   grid-template-columns: 340px 1fr;
   gap: 0; padding: 0;
 }
+.tv-slide-single {
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr;
+  gap: 0; padding: 0;
+}
 .tv-slide-charts {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr;
@@ -356,7 +361,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
       <svg id="theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
       <span id="theme-label">Tema Claro</span>
     </button>
-    <a class="btn" id="btn-viagens-material" style="display:none" href="https://rcs1998.github.io/TransAnalyticsPro/viagens" target="_blank" rel="noopener">📦 Viagens por Material</a>
+    <a class="btn" id="btn-viagens-material" style="display:none" href="https://rcs1998.github.io/TransAnalyticsPro/viagens" rel="noopener">📦 Viagens por Material</a>
     <button class="btn" id="btn-export-excel" style="display:none" onclick="exportCurrent()">Exportar Excel</button>
     <button class="btn" id="btn-export-page" style="display:none" onclick="exportPageAsPNG()">🖼️ Exportar Página</button>
     <button class="btn" id="btn-tv" style="display:none" onclick="openTVMode()">📺 TV</button>
@@ -370,7 +375,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
   <div class="mobile-drawer-section">Navegação</div>
   <button class="mobile-drawer-item" onclick="switchPage('performance'); toggleMobileDrawer()">📦 Performance Transportadoras</button>
   <button class="mobile-drawer-item" onclick="switchPage('tempo'); toggleMobileDrawer()">⏱️ Tempo na Usina</button>
-  <button class="mobile-drawer-item" onclick="window.open('https://rcs1998.github.io/TransAnalyticsPro/viagens','_blank'); toggleMobileDrawer()">📦 Viagens por Material</button>
+  <button class="mobile-drawer-item" onclick="window.location.href='https://rcs1998.github.io/TransAnalyticsPro/viagens'">📦 Viagens por Material</button>
   <div class="mobile-drawer-section">Exportar</div>
   <button class="mobile-drawer-item" onclick="exportCurrent(); toggleMobileDrawer()">📊 Exportar Excel</button>
   <button class="mobile-drawer-item" onclick="exportPageAsPNG(); toggleMobileDrawer()">🖼️ Exportar Página</button>
@@ -470,6 +475,13 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
       <div class="tv-chart-panel full" style="border-bottom:none">
         <div class="tv-chart-label">Tempo Médio por Dia</div>
         <div class="tv-chart-inner"><canvas id="tvc-tempo-1c"></canvas></div>
+      </div>
+    </div>
+
+    <div class="tv-slide tv-slide-single" id="tv-s-tempo-2">
+      <div class="tv-chart-panel" style="border-right:none; border-bottom:none">
+        <div class="tv-chart-label">Movimentação e Tempo Médio por Hora do Dia</div>
+        <div class="tv-chart-inner"><canvas id="tvc-tempo-2"></canvas></div>
       </div>
     </div>
   </div>
@@ -664,9 +676,10 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
     </div>
 
     <div class="charts-grid-main">
-      <div class="chart-card" style="grid-column: 1 / -1;">
+      <div class="chart-card chart-clickable" style="grid-column: 1 / -1;">
         <button class="chart-export-btn" onclick="exportChartAsPNG('chart-daily', 'evolucao_diaria.png', 'Evolução Diária')" title="Exportar imagem">⬇</button>
         <div class="chart-title" id="chart-daily-title">Viagens por Dia</div>
+        <div class="chart-card-hint">Clique em um ponto para filtrar aquele dia</div>
         <div class="chart-container-sub">
           <canvas id="chart-daily"></canvas>
         </div>
@@ -793,6 +806,11 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
       <button onclick="clearPlateFilterTempo()">✕</button>
     </div>
 
+    <div id="extra-chip-tempo" class="active-chip" style="display:none">
+      <span id="extra-chip-label-tempo"></span>
+      <button onclick="clearExtraFilterTempo()">✕</button>
+    </div>
+
     <div class="kpi-grid">
       <div class="kpi-card" style="--kpi-color: var(--accent)">
         <div class="kpi-label">Tempo Médio na Usina</div>
@@ -849,9 +867,10 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
           <canvas id="chart-tempo-plates"></canvas>
         </div>
       </div>
-      <div class="chart-card" style="--kpi-color: var(--amber)">
+      <div class="chart-card chart-clickable" style="--kpi-color: var(--amber)">
         <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-distribution', 'distribuicao_tempos.png', 'Distribuição de Tempos na Usina')" title="Exportar imagem">⬇</button>
         <div class="chart-title">Distribuição de Tempos na Usina</div>
+        <div class="chart-card-hint">Clique em uma barra para filtrar essa faixa de tempo</div>
         <div class="chart-container-sub">
           <canvas id="chart-tempo-distribution"></canvas>
         </div>
@@ -859,10 +878,10 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
     </div>
 
     <div class="charts-grid-main">
-      <div class="chart-card" style="grid-column: 1 / -1;">
-        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-hourly', 'movimentacao_por_hora.png', 'Movimentação e Tempo Médio por Hora do Dia')" title="Exportar imagem">⬇</button>
+      <div class="chart-card chart-clickable" style="grid-column: 1 / -1;">
+        <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-hourly', 'movimentacao_por_hora.png', 'Movimentação e Tempo Médio por Hora do Dia', (v, ds) => ds && ds.yAxisID === 'y1' ? formatMinutes(v) : String(v))" title="Exportar imagem">⬇</button>
         <div class="chart-title">Movimentação e Tempo Médio por Hora do Dia</div>
-        <div class="chart-card-hint">Barras: quantidade de veículos · Linha: tempo médio de permanência (HH:MM)</div>
+        <div class="chart-card-hint">Barras: veículos · Linha: tempo médio (HH:MM) · Clique numa barra/ponto para filtrar a hora</div>
         <div class="chart-container-sub">
           <canvas id="chart-tempo-hourly"></canvas>
         </div>
@@ -870,9 +889,10 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
     </div>
 
     <div class="charts-grid-main">
-      <div class="chart-card" style="grid-column: 1 / -1;">
+      <div class="chart-card chart-clickable" style="grid-column: 1 / -1;">
         <button class="chart-export-btn" onclick="exportChartAsPNG('chart-tempo-daily', 'tempo_medio_diario.png', 'Tempo Médio na Usina por Dia', formatMinutes)" title="Exportar imagem">⬇</button>
         <div class="chart-title" id="chart-tempo-daily-title">Tempo Médio na Usina por Dia</div>
+        <div class="chart-card-hint">Clique em um ponto para filtrar aquele dia</div>
         <div class="chart-container-sub">
           <canvas id="chart-tempo-daily"></canvas>
         </div>
@@ -883,7 +903,8 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
       <div class="table-header">
         <h3 style="font-family:var(--font-head); font-size:14px">Piores Tempos na Usina</h3>
         <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:11px; color:var(--text-3)">Tempo limite: <input type="number" id="tempo-threshold" value="2" min="0.5" step="0.5" style="width:42px; background:var(--bg-3); border:1px solid var(--border); border-radius:4px; color:var(--text-1); padding:2px 4px; text-align:center;" onchange="applyFiltersTempo()"> horas</span>
+          <span style="font-size:11px; color:var(--text-3)">Tempo limite: <input type="number" id="tempo-threshold" value="2" min="0.5" step="0.5" style="width:42px; background:var(--bg-3); border:1px solid var(--border); border-radius:4px; color:var(--text-1); padding:2px 4px; text-align:center;" onchange="localStorage.setItem('tempo_threshold_h', this.value); applyFiltersTempo()"> horas</span>
+          <script>(function(){ var v = localStorage.getItem('tempo_threshold_h'); if (v) document.getElementById('tempo-threshold').value = v; })();</script>
           <button class="btn" style="font-size:11px; padding:5px 10px;" onclick="exportWorstTimesXLSX()">📥 Exportar XLSX</button>
         </div>
       </div>
@@ -997,7 +1018,7 @@ function tvGetSavedInterval() {
 const tv = {
   channel: 'perf',
   slide: 0,
-  slides: { perf: 2, tempo: 2 },
+  slides: { perf: 2, tempo: 3 },
   playing: true,
   ms: tvGetSavedInterval(),
   timer: null,
@@ -1006,7 +1027,7 @@ const tv = {
 
 const TV_SLIDES = {
   perf:  ['tv-s-perf-0',  'tv-s-perf-1'],
-  tempo: ['tv-s-tempo-0', 'tv-s-tempo-1']
+  tempo: ['tv-s-tempo-0', 'tv-s-tempo-1', 'tv-s-tempo-2']
 };
 
 function openTVMode() {
@@ -1194,7 +1215,7 @@ function tvMakeChart(canvasId, type, data, extraOpts) {
           const val = dataset.data[idx];
           if (val === null || val === undefined || val === 0) return;
           const text = valueFormat
-            ? valueFormat(val)
+            ? valueFormat(val, dataset, di)
             : (typeof val === 'number'
                 ? (Number.isInteger(val) ? String(val) : val.toFixed(1))
                 : String(val));
@@ -1341,11 +1362,35 @@ function tvBuildSlideTempo1() {
     });
 }
 
+// Slide 2 — Tempo na Usina: movimentação e tempo médio por hora do dia (barras + linha, tela cheia)
+function tvBuildSlideTempo2() {
+  const cloned = tvCloneData(chartsTempo['hourly']);
+  tvMakeChart('tvc-tempo-2', 'bar', cloned,
+    { _valueFormat: (v, ds) => ds && ds.yAxisID === 'y1' ? formatMinutes(v) : String(v),
+      layout: { padding: { top: 26, right: 12, bottom: 4 } },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: dark_TV, font: { size: 13, weight: '600' }, boxWidth: 14 } },
+        tooltip: { callbacks: {
+          label: (ctx) => ctx.dataset.yAxisID === 'y1'
+            ? `Tempo médio: ${ctx.raw === null ? '--:--' : formatMinutes(ctx.raw)}`
+            : `Veículos: ${ctx.raw}`
+        } }
+      },
+      scales: {
+        x: { ticks: { color: dark_TV, font: { size: 12, weight: '600' } }, grid: { display: false } },
+        y: { position: 'left', beginAtZero: true, ticks: { color: dark_TV, font: { size: 12, weight: '600' }, precision: 0 }, grid: { color: gridC_TV } },
+        y1: { position: 'right', beginAtZero: true, ticks: { color: '#00c8aa', font: { size: 12, weight: '600' }, callback: v => formatMinutes(v) }, grid: { display: false } }
+      }
+    });
+}
+
 const TV_SLIDE_BUILDERS = {
   'tv-s-perf-0': tvBuildSlidePerf0,
   'tv-s-perf-1': tvBuildSlidePerf1,
   'tv-s-tempo-0': tvBuildSlideTempo0,
-  'tv-s-tempo-1': tvBuildSlideTempo1
+  'tv-s-tempo-1': tvBuildSlideTempo1,
+  'tv-s-tempo-2': tvBuildSlideTempo2
 };
 /* ==================== FIM MODO TV ==================== */
 
@@ -1727,6 +1772,9 @@ let stateTempo = {
   selectedMonths: new Set(),
   selectedMaterials: new Set(),
   selectedPlate: null,
+  selectedTempoBucket: null, // {label, min, max}
+  selectedDay: null,         // 'YYYY-MM-DD'
+  selectedHour: null,        // 0-23
   sortCol: 'avg',
   sortDir: 'desc',
   currentData: []
@@ -1849,7 +1897,7 @@ try {
         meta.data.forEach((element, index) => {
           const rawValue = dataset.data[index];
           if (rawValue === null || rawValue === undefined) return;
-          const text = formatter(rawValue);
+          const text = formatter(rawValue, dataset, datasetIndex);
           if (text === '') return;
           const pos = element.tooltipPosition ? element.tooltipPosition() : { x: element.x, y: element.y };
           let x = pos.x, y = pos.y;
@@ -2194,6 +2242,15 @@ function setCarrierFilter(name) {
   applyFilters();
 }
 
+function setDayFilter(dayKey) {
+  const startEl = document.getElementById('filter-date-start');
+  const endEl = document.getElementById('filter-date-end');
+  const same = startEl.value === dayKey && endEl.value === dayKey;
+  startEl.value = same ? '' : dayKey;
+  endEl.value = same ? '' : dayKey;
+  applyFilters();
+}
+
 function toggleMaterialFilter(name) {
   if (state.selectedMaterials.has(name)) {
     state.selectedMaterials.delete(name);
@@ -2398,7 +2455,10 @@ function renderCharts(data, totals, dailyMap) {
   // 5. Viagens por Dia (linha do tempo) — respeita todos os filtros, inclusive placa selecionada
   const dayKeys = Object.keys(dailyMap).sort();
   if(charts.daily) charts.daily.destroy();
-  charts.daily = new Chart(document.getElementById('chart-daily'), { type: 'line', data: { labels: dayKeys.map(k => { const [y,m,d] = k.split('-'); return `${d}/${m}`; }), datasets: [{ label: 'Viagens', data: dayKeys.map(k => dailyMap[k]), borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', fill: true, tension: 0.25, pointRadius: dayKeys.length > 60 ? 0 : 3 }] }, options: { ...commonOptions, plugins: { legend: { display: false }, tooltip: { callbacks: { title: (items) => { const idx = items[0].dataIndex; return dayKeys[idx]; } } } } } });
+  charts.daily = new Chart(document.getElementById('chart-daily'), { type: 'line', data: { labels: dayKeys.map(k => { const [y,m,d] = k.split('-'); return `${d}/${m}`; }), datasets: [{ label: 'Viagens', data: dayKeys.map(k => dailyMap[k]), borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', fill: true, tension: 0.25, pointRadius: dayKeys.length > 60 ? 0 : 3, pointHoverRadius: 6 }] }, options: { ...commonOptions, plugins: { legend: { display: false }, tooltip: { callbacks: { title: (items) => { const idx = items[0].dataIndex; return dayKeys[idx]; } } } },
+    onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+    onClick: (e, els) => { if (els.length) setDayFilter(dayKeys[els[0].index]); }
+  } });
   setupResizeObserver();
 }
 
@@ -2660,6 +2720,32 @@ function clearPlateFilterTempo() {
   applyFiltersTempo();
 }
 
+function setTempoBucketFilter(bucket) {
+  const same = stateTempo.selectedTempoBucket && stateTempo.selectedTempoBucket.label === bucket.label;
+  stateTempo.selectedTempoBucket = same ? null : bucket;
+  stateTempo.selectedDay = null;
+  stateTempo.selectedHour = null;
+  applyFiltersTempo();
+}
+function setTempoDayFilter(dayKey) {
+  stateTempo.selectedDay = (stateTempo.selectedDay === dayKey) ? null : dayKey;
+  stateTempo.selectedTempoBucket = null;
+  stateTempo.selectedHour = null;
+  applyFiltersTempo();
+}
+function setTempoHourFilter(hour) {
+  stateTempo.selectedHour = (stateTempo.selectedHour === hour) ? null : hour;
+  stateTempo.selectedTempoBucket = null;
+  stateTempo.selectedDay = null;
+  applyFiltersTempo();
+}
+function clearExtraFilterTempo() {
+  stateTempo.selectedTempoBucket = null;
+  stateTempo.selectedDay = null;
+  stateTempo.selectedHour = null;
+  applyFiltersTempo();
+}
+
 function applyFiltersTempo() {
   if (!stateTempo.allEntries) return;
 
@@ -2687,6 +2773,19 @@ function applyFiltersTempo() {
     if (carrierFilter === '__NI__' && carrierName) return false;
     if (carrierFilter && carrierFilter !== '__NI__' && carrierName !== carrierFilter) return false;
     if (stateTempo.selectedPlate && e.placa !== stateTempo.selectedPlate) return false;
+    if (stateTempo.selectedTempoBucket) {
+      const b = stateTempo.selectedTempoBucket;
+      if (e.tempoUsina <= b.min || e.tempoUsina > b.max) return false;
+    }
+    if (stateTempo.selectedDay) {
+      if (e.dateTs === null) return false;
+      const d = new Date(e.dateTs);
+      const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      if (dk !== stateTempo.selectedDay) return false;
+    }
+    if (stateTempo.selectedHour !== null) {
+      if (e.dateTs === null || new Date(e.dateTs).getHours() !== stateTempo.selectedHour) return false;
+    }
     return true;
   });
 
@@ -2740,6 +2839,23 @@ function applyFiltersTempo() {
 
   document.getElementById('plate-chip-tempo').style.display = stateTempo.selectedPlate ? 'flex' : 'none';
   if (stateTempo.selectedPlate) document.getElementById('plate-chip-value-tempo').innerText = stateTempo.selectedPlate;
+
+  const extraChip = document.getElementById('extra-chip-tempo');
+  const extraLabel = document.getElementById('extra-chip-label-tempo');
+  if (stateTempo.selectedTempoBucket) {
+    extraChip.style.display = 'flex';
+    extraLabel.innerText = `Faixa de tempo: ${stateTempo.selectedTempoBucket.label}`;
+  } else if (stateTempo.selectedDay) {
+    const [y,m,d] = stateTempo.selectedDay.split('-');
+    extraChip.style.display = 'flex';
+    extraLabel.innerText = `Dia: ${d}/${m}/${y}`;
+  } else if (stateTempo.selectedHour !== null) {
+    extraChip.style.display = 'flex';
+    extraLabel.innerText = `Hora: ${String(stateTempo.selectedHour).padStart(2,'0')}:00 - ${String(stateTempo.selectedHour).padStart(2,'0')}:59`;
+  } else {
+    extraChip.style.display = 'none';
+  }
+
   document.getElementById('chart-tempo-daily-title').innerText = stateTempo.selectedPlate ? `Tempo Médio na Usina por Dia — Placa ${stateTempo.selectedPlate}` : 'Tempo Médio na Usina por Dia';
 }
 
@@ -2787,17 +2903,24 @@ function renderChartsTempo(totals, filteredEntries) {
     onClick: (e, els) => { if (els.length) setPlateFilterTempo(topPlates[els[0].index].placa); }
   } });
 
-  const buckets = [ { label: '< 30min', max: 30 }, { label: '30-60min', max: 60 }, { label: '1-2h', max: 120 }, { label: '2-4h', max: 240 }, { label: '> 4h', max: Infinity } ];
+  const buckets = [ { label: '< 30min', min: -Infinity, max: 30 }, { label: '30-60min', min: 30, max: 60 }, { label: '1-2h', min: 60, max: 120 }, { label: '2-4h', min: 120, max: 240 }, { label: '> 4h', min: 240, max: Infinity } ];
   const bucketCounts = buckets.map(() => 0);
   filteredEntries.forEach(e => {
     for (let i = 0; i < buckets.length; i++) { if (e.tempoUsina <= buckets[i].max) { bucketCounts[i]++; break; } }
   });
   if (chartsTempo.dist) chartsTempo.dist.destroy();
-  chartsTempo.dist = new Chart(document.getElementById('chart-tempo-distribution'), { type: 'bar', data: { labels: buckets.map(b => b.label), datasets: [{ data: bucketCounts, backgroundColor: '#f0a500' }] }, options: commonOptions });
+  chartsTempo.dist = new Chart(document.getElementById('chart-tempo-distribution'), { type: 'bar', data: { labels: buckets.map(b => b.label), datasets: [{ data: bucketCounts, backgroundColor: buckets.map(b => (stateTempo.selectedTempoBucket && stateTempo.selectedTempoBucket.label === b.label) ? '#00c8aa' : '#f0a500') }] }, options: { ...commonOptions,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw} placas` } } },
+    onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+    onClick: (e, els) => { if (els.length) setTempoBucketFilter(buckets[els[0].index]); }
+  } });
 
   const dayKeys = Object.keys(totals.dailyAgg).sort();
   if (chartsTempo.daily) chartsTempo.daily.destroy();
-  chartsTempo.daily = new Chart(document.getElementById('chart-tempo-daily'), { type: 'line', data: { labels: dayKeys.map(k => { const [y,m,d] = k.split('-'); return `${d}/${m}`; }), datasets: [{ label: 'Tempo Médio (min)', data: dayKeys.map(k => +(totals.dailyAgg[k].sum/totals.dailyAgg[k].count).toFixed(1)), borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', fill: true, tension: 0.25, pointRadius: dayKeys.length > 60 ? 0 : 3 }] }, options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, ticks: { ...commonOptions.scales.y.ticks, callback: v => v + ' min' } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw), title: (items) => { const idx = items[0].dataIndex; return dayKeys[idx]; } } } } } });
+  chartsTempo.daily = new Chart(document.getElementById('chart-tempo-daily'), { type: 'line', data: { labels: dayKeys.map(k => { const [y,m,d] = k.split('-'); return `${d}/${m}`; }), datasets: [{ label: 'Tempo Médio (min)', data: dayKeys.map(k => +(totals.dailyAgg[k].sum/totals.dailyAgg[k].count).toFixed(1)), borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', fill: true, tension: 0.25, pointRadius: dayKeys.length > 60 ? 0 : 3, pointHoverRadius: 6 }] }, options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, ticks: { ...commonOptions.scales.y.ticks, callback: v => v + ' min' } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Tempo médio: ' + formatMinutes(ctx.raw), title: (items) => { const idx = items[0].dataIndex; return dayKeys[idx]; } } } },
+    onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+    onClick: (e, els) => { if (els.length) setTempoDayFilter(dayKeys[els[0].index]); }
+  } });
 
   // Movimentação e tempo médio por hora do dia (barras = veículos, linha = tempo médio)
   const hourLabels = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2,'0')}:00`);
@@ -2809,13 +2932,15 @@ function renderChartsTempo(totals, filteredEntries) {
     data: {
       labels: hourLabels,
       datasets: [
-        { type: 'bar', label: 'Veículos', data: hourCounts, backgroundColor: 'rgba(72,149,239,0.55)', borderRadius: 3, yAxisID: 'y', order: 2 },
-        { type: 'line', label: 'Tempo Médio', data: hourAvg, borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', tension: 0.3, spanGaps: true, pointRadius: 3, pointBackgroundColor: '#00c8aa', yAxisID: 'y1', order: 1 }
+        { type: 'bar', label: 'Veículos', data: hourCounts, backgroundColor: hourCounts.map((_, h) => stateTempo.selectedHour === h ? '#2f6fce' : 'rgba(72,149,239,0.55)'), borderRadius: 3, yAxisID: 'y', order: 2 },
+        { type: 'line', label: 'Tempo Médio', data: hourAvg, borderColor: '#00c8aa', backgroundColor: 'rgba(0,200,170,0.15)', tension: 0.3, spanGaps: true, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#00c8aa', yAxisID: 'y1', order: 1 }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
       interaction: { mode: 'index', intersect: false },
+      onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+      onClick: (e, els) => { if (els.length) setTempoHourFilter(els[0].index); },
       plugins: {
         legend: { display: true, position: 'top', labels: { color: '#9aa5b8', font: { size: 11 }, boxWidth: 12 } },
         tooltip: { callbacks: {
@@ -2888,6 +3013,9 @@ function clearFiltersTempo() {
   stateTempo.selectedMonths.clear();
   stateTempo.selectedMaterials.clear();
   stateTempo.selectedPlate = null;
+  stateTempo.selectedTempoBucket = null;
+  stateTempo.selectedDay = null;
+  stateTempo.selectedHour = null;
   document.querySelectorAll('#month-options-tempo input[type=checkbox], #material-options-list-tempo input[type=checkbox]').forEach(c => c.checked = false);
   document.getElementById('month-label-tempo').innerText = 'Todos os meses carregados';
   updateMaterialLabelTempo();
