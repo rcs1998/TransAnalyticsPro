@@ -392,6 +392,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
         <option value="15000">15s/slide</option>
         <option value="20000">20s/slide</option>
         <option value="30000">30s/slide</option>
+        <option value="60000">1 min/slide</option>
       </select>
       <button class="tv-btn" id="tv-play-btn" onclick="tvTogglePlay()">⏸ Pausar</button>
       <button class="tv-btn" onclick="closeTVMode()">✕ Sair</button>
@@ -973,12 +974,18 @@ function exportWorstTimesXLSX() {
 }
 
 /* ==================== MODO TV ==================== */
+function tvGetSavedInterval() {
+  const saved = parseInt(localStorage.getItem('tv_interval_ms'));
+  const valid = [8000, 10000, 15000, 20000, 30000, 60000];
+  return valid.includes(saved) ? saved : 10000;
+}
+
 const tv = {
   channel: 'perf',
   slide: 0,
   slides: { perf: 2, tempo: 2 },
   playing: true,
-  ms: 10000,
+  ms: tvGetSavedInterval(),
   timer: null,
   charts: {}
 };
@@ -992,6 +999,8 @@ function openTVMode() {
   tvBuildKPIs();
   tv.channel = 'perf';
   tv.slide = 0;
+  const intervalSelect = document.getElementById('tv-interval');
+  if (intervalSelect) intervalSelect.value = tv.ms;
   document.getElementById('tv-overlay').classList.add('active');
   try { document.getElementById('tv-overlay').requestFullscreen(); } catch(e){}
   tvRender();
@@ -1102,6 +1111,7 @@ function tvTogglePlay() {
 
 function tvSetInterval() {
   tv.ms = parseInt(document.getElementById('tv-interval').value);
+  localStorage.setItem('tv_interval_ms', tv.ms);
   if (tv.playing) tvStartPlay();
 }
 
@@ -1234,6 +1244,7 @@ function tvBuildSlidePerf0() {
   const chartData = tvTopCarriersByMovement(10);
   tvMakeChart('tvc-perf-0', 'bar', chartData,
     { indexAxis: 'y', _valueFormat: v => v.toLocaleString('pt-BR', {maximumFractionDigits:1}) + ' t',
+      layout: { padding: { right: 36 } },
       scales: { x: { beginAtZero: true, grace: '12%', ticks: { color: dark_TV, font:{size:12,weight:'600'}, callback: v => v + ' t' }, grid:{color:gridC_TV} }, y: { ticks: { color: dark_TV, font:{size:12,weight:'600'} }, grid:{display:false} } },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `Volume: ${ctx.raw.toLocaleString('pt-BR')} t` } } },
       onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
