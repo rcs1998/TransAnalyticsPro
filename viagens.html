@@ -10,6 +10,17 @@
     --text: #e8ecf5; --sub: #9aa5b8; --muted: #5a6478;
     --accent: #00c8aa; --radius: 10px;
   }
+  body.light {
+    --bg: #f4f6fb; --card: #ffffff; --border: #dde3ef;
+    --text: #1a2035; --sub: #6b7a99; --muted: #a0aabf;
+    --accent: #00a887;
+  }
+  body.light .ms-btn, body.light .small-btn, body.light .ms-search,
+  body.light .login-input, body.light input[type=date], body.light input[type=text] {
+    background: #eef1f8; border-color: #dde3ef; color: var(--text);
+  }
+  body.light .ms-dropdown { box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+  body.light .bar-track { background: #dde3ef; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: -apple-system, Segoe UI, Roboto, sans-serif; min-height: 100vh; }
 
@@ -82,10 +93,14 @@
   tbody tr { border-bottom: 1px solid var(--border); }
   tbody tr:hover { background: rgba(255,255,255,0.03); }
   td { padding: 9px 14px; }
-  td.mat { font-weight: 600; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table { table-layout: fixed; width: 100%; }
+  col.col-mat { width: 45%; }
+  col.col-num { width: 100px; }
+  col.col-bar { }
+  td.mat { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; width: 100px; white-space: nowrap; }
   .bar-cell { display: flex; align-items: center; gap: 8px; }
-  .bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; min-width: 60px; }
+  .bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; min-width: 80px; }
   .bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.4s ease; }
   .pct { font-size: 11px; color: var(--sub); width: 40px; text-align: right; flex-shrink: 0; }
   .empty { text-align: center; padding: 48px; color: var(--muted); font-size: 13px; }
@@ -108,6 +123,7 @@
   <!-- TOPBAR -->
   <div class="topbar">
     <h1>📦 Viagens por Material</h1>
+    <button class="logout-btn" id="theme-btn" onclick="toggleTheme()" style="margin-left:0">☀️ Tema</button>
     <button class="logout-btn" onclick="auth.signOut()">Sair</button>
   </div>
 
@@ -197,6 +213,7 @@
         <span class="record-count" id="record-count"></span>
       </div>
       <table>
+        <colgroup><col class="col-mat"><col class="col-num"><col class="col-bar"></colgroup>
         <thead>
           <tr>
             <th onclick="sortBy('material')" id="th-material">Material</th>
@@ -235,6 +252,18 @@ let allMaterials = [];
 let sortCol = 'count', sortDir = 'desc';
 
 /* ---- AUTH ---- */
+let _theme = localStorage.getItem('vm_theme') || 'dark';
+function applyTheme() {
+  document.body.classList.toggle('light', _theme === 'light');
+  document.getElementById('theme-btn').innerText = _theme === 'light' ? '🌙 Tema' : '☀️ Tema';
+}
+function toggleTheme() {
+  _theme = _theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('vm_theme', _theme);
+  applyTheme();
+}
+applyTheme();
+
 function login() {
   const e = document.getElementById('email').value.trim();
   const p = document.getElementById('password').value;
