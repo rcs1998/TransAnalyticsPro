@@ -47,6 +47,8 @@
   .small-btn:hover { border-color: var(--accent); color: var(--accent); }
   .logout-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--sub); padding: 6px 13px; font-size: 12px; cursor: pointer; margin-left: auto; }
   .logout-btn:hover { color: var(--text); }
+  .back-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--sub); padding: 6px 13px; font-size: 12px; cursor: pointer; white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .back-btn:hover { color: var(--accent); border-color: var(--accent); }
 
   /* FILTERS BAR — mesmo estilo do dashboard */
   .filters-bar { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: var(--bg); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
@@ -123,6 +125,7 @@
   <!-- TOPBAR -->
   <div class="topbar">
     <h1>📦 Viagens por Material</h1>
+    <a class="back-btn" href="https://rcs1998.github.io/TransAnalyticsPro/">← Voltar ao Dashboard</a>
     <button class="logout-btn" id="theme-btn" onclick="toggleTheme()" style="margin-left:0">☀️ Tema</button>
     <button class="logout-btn" onclick="auth.signOut()">Sair</button>
   </div>
