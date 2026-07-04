@@ -29,7 +29,7 @@
   .login-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 36px 32px; width: 100%; max-width: 360px; }
   .login-card h1 { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
   .login-card p { color: var(--sub); font-size: 13px; margin-bottom: 24px; }
-  .login-input { width: 100%; background: #161d33; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 13px; margin-bottom: 10px; }
+  .login-input { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 13px; margin-bottom: 10px; }
   .btn-login { width: 100%; padding: 11px; background: var(--accent); border: none; border-radius: 8px; color: #041a10; font-weight: 700; font-size: 14px; cursor: pointer; }
   .btn-login:hover { opacity: 0.88; }
   .err { font-size: 12px; color: #ff6b6b; min-height: 16px; text-align: center; margin-top: 6px; }
@@ -41,9 +41,9 @@
   .topbar { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; background: var(--card); }
   .topbar h1 { font-size: 15px; font-weight: 800; white-space: nowrap; }
   .topbar label { font-size: 11px; color: var(--sub); white-space: nowrap; }
-  .topbar input[type=date] { background: #161d33; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 6px 10px; font-size: 12px; }
+  .topbar input[type=date] { background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 6px 10px; font-size: 12px; }
   .topbar-group { display: flex; align-items: center; gap: 5px; }
-  .small-btn { background: #161d33; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 6px 13px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+  .small-btn { background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 6px 13px; font-size: 12px; cursor: pointer; white-space: nowrap; }
   .small-btn:hover { border-color: var(--accent); color: var(--accent); }
   .logout-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--sub); padding: 6px 13px; font-size: 12px; cursor: pointer; margin-left: auto; }
   .logout-btn:hover { color: var(--text); }
@@ -55,13 +55,13 @@
 
   /* multi-select dropdown */
   .ms { position: relative; }
-  .ms-btn { display: flex; align-items: center; gap: 8px; background: #161d33; border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; color: var(--text); font-size: 12px; cursor: pointer; white-space: nowrap; min-width: 160px; }
+  .ms-btn { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; color: var(--text); font-size: 12px; cursor: pointer; white-space: nowrap; min-width: 160px; }
   .ms-btn:hover { border-color: var(--accent); }
   .ms-btn.active { border-color: var(--accent); color: var(--accent); }
   .ms-btn svg { margin-left: auto; flex-shrink: 0; }
   .ms-dropdown { display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 200; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 6px 0; min-width: 220px; max-height: 280px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
   .ms-dropdown.open { display: block; }
-  .ms-search { margin: 6px 10px 4px; width: calc(100% - 20px); background: #161d33; border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 5px 9px; font-size: 12px; }
+  .ms-search { margin: 6px 10px 4px; width: calc(100% - 20px); background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 5px 9px; font-size: 12px; }
   .ms-actions { display: flex; gap: 10px; padding: 4px 12px 6px; border-bottom: 1px solid var(--border); }
   .ms-link { font-size: 11px; color: var(--sub); cursor: pointer; text-decoration: underline; }
   .ms-link:hover { color: var(--accent); }
@@ -85,7 +85,7 @@
   /* TABLE */
   .table-wrap { padding: 14px 20px 32px; overflow-x: auto; }
   .table-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-  .table-controls input[type=text] { flex: 1; min-width: 180px; max-width: 300px; background: #161d33; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 12px; font-size: 12px; }
+  .table-controls input[type=text] { flex: 1; min-width: 180px; max-width: 300px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 12px; font-size: 12px; }
   .record-count { font-size: 11px; color: var(--muted); margin-left: auto; white-space: nowrap; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 420px; }
   thead th { background: var(--card); border-bottom: 2px solid var(--border); padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; white-space: nowrap; user-select: none; }
@@ -170,11 +170,11 @@
     <!-- Datas -->
     <div class="filter-group">
       <span class="filter-label">De</span>
-      <input type="date" id="f-start" onchange="applyFilters()" style="background:#161d33;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 10px;font-size:12px;" />
+      <input type="date" id="f-start" onchange="applyFilters()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 10px;font-size:12px;" />
     </div>
     <div class="filter-group">
       <span class="filter-label">Até</span>
-      <input type="date" id="f-end" onchange="applyFilters()" style="background:#161d33;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 10px;font-size:12px;" />
+      <input type="date" id="f-end" onchange="applyFilters()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 10px;font-size:12px;" />
     </div>
 
     <button class="small-btn" onclick="clearFilters()" style="margin-top:14px">Limpar</button>
