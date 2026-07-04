@@ -1220,20 +1220,29 @@ function tvMakeChart(canvasId, type, data, extraOpts) {
                 ? (Number.isInteger(val) ? String(val) : val.toFixed(1))
                 : String(val));
           let x, y, align = 'center';
-          if (chart.config.type === 'bar') {
+          const dsType = dataset.type || chart.config.type;
+          if (dsType === 'bar') {
             if (chart.options.indexAxis === 'y') { x = el.x + 10; y = el.y; align = 'left'; }
-            else { x = el.x; y = el.y - 12; }
+            else { x = el.x; y = el.y - 8; }
           } else {
             const pos = el.tooltipPosition ? el.tooltipPosition() : { x: el.x, y: el.y };
             x = pos.x; y = pos.y;
-            if (chart.config.type === 'line') y -= 12;
+            if (dsType === 'line') y -= 20;
           }
           ctx2.save();
           ctx2.font = '700 12px -apple-system,Segoe UI,sans-serif';
           ctx2.textAlign = align; ctx2.textBaseline = 'middle';
+          if (dsType === 'line' && align === 'center') {
+            const w = ctx2.measureText(text).width;
+            ctx2.fillStyle = 'rgba(10,15,25,0.82)';
+            ctx2.beginPath();
+            if (ctx2.roundRect) ctx2.roundRect(x - w/2 - 5, y - 9, w + 10, 18, 5);
+            else ctx2.rect(x - w/2 - 5, y - 9, w + 10, 18);
+            ctx2.fill();
+          }
           ctx2.strokeStyle = 'rgba(0,0,0,0.7)'; ctx2.lineWidth = 3; ctx2.lineJoin = 'round';
           ctx2.strokeText(text, x, y);
-          ctx2.fillStyle = '#fff';
+          ctx2.fillStyle = dsType === 'line' ? (dataset.borderColor || '#00c8aa') : '#fff';
           ctx2.fillText(text, x, y);
           ctx2.restore();
         });
@@ -1901,14 +1910,25 @@ try {
           if (text === '') return;
           const pos = element.tooltipPosition ? element.tooltipPosition() : { x: element.x, y: element.y };
           let x = pos.x, y = pos.y;
-          if (chart.config.type === 'bar') {
-            if (chart.options.indexAxis === 'y') x += 16; else y -= 10;
-          } else if (chart.config.type === 'line') {
-            y -= 12;
+          const dsType = dataset.type || chart.config.type;
+          if (dsType === 'bar') {
+            if (chart.options.indexAxis === 'y') x += 16; else y -= 8;
+          } else if (dsType === 'line') {
+            y -= 20;
           }
           ctx.save();
           ctx.font = '700 11px -apple-system, Segoe UI, Roboto, sans-serif';
-          ctx.fillStyle = '#fff';
+          if (dsType === 'line') {
+            const w = ctx.measureText(text).width;
+            ctx.fillStyle = 'rgba(10,15,25,0.82)';
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(x - w/2 - 5, y - 9, w + 10, 18, 5);
+            else ctx.rect(x - w/2 - 5, y - 9, w + 10, 18);
+            ctx.fill();
+            ctx.fillStyle = dataset.borderColor || '#00c8aa';
+          } else {
+            ctx.fillStyle = '#fff';
+          }
           ctx.strokeStyle = 'rgba(0,0,0,0.65)';
           ctx.lineWidth = 3;
           ctx.lineJoin = 'round';
