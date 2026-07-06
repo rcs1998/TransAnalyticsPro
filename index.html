@@ -959,6 +959,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -970,6 +971,14 @@ const firebaseConfig = {
   appId: "1:696652164052:web:93b9c9e3e049f3fbb20441"
 };
 firebase.initializeApp(firebaseConfig);
+
+// App Check — protege Firestore/Auth contra chamadas feitas fora do app real
+const appCheck = firebase.appCheck();
+appCheck.activate(
+  '6LdCzUctAAAAAIx3aKoC2pPSOSn_c20hFWb7KNwt', // Site Key do reCAPTCHA v3
+  true // renova o token automaticamente
+);
+
 const auth = firebase.auth();
 const db = firebase.firestore();
 
