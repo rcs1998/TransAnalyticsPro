@@ -234,6 +234,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
 <script>
 firebase.initializeApp({
   apiKey: "AIzaSyCauvny8DdHEuHNJtJaaXKSnvWHHzUUBaw",
@@ -243,6 +244,13 @@ firebase.initializeApp({
   messagingSenderId: "696652164052",
   appId: "1:696652164052:web:93b9c9e3e049f3fbb20441"
 });
+
+const appCheck = firebase.appCheck();
+appCheck.activate(
+  '6LdCzUctAAAAAHoBnz9PXbJocrprOjk-I4eqktwR',
+  true
+);
+
 const auth = firebase.auth();
 const db = firebase.firestore();
 
