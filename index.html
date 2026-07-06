@@ -972,12 +972,12 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
-// App Check — protege Firestore/Auth contra chamadas feitas fora do app real
-const appCheck = firebase.appCheck();
-appCheck.activate(
-  '6LdCzUctAAAAAIx3aKoC2pPSOSn_c20hFWb7KNwt', // Site Key do reCAPTCHA v3
-  true // renova o token automaticamente
-);
+// App Check temporariamente desativado (em investigação — erro 400 no reCAPTCHA)
+// const appCheck = firebase.appCheck();
+// appCheck.activate(
+//   '6LdCzUctAAAAAIx3aKoC2pPSOSn_c20hFWb7KNwt',
+//   true
+// );
 
 const auth = firebase.auth();
 const db = firebase.firestore();
