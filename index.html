@@ -543,6 +543,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
   <div class="page-tabs">
     <button class="page-tab-btn active" id="tab-btn-performance" onclick="switchPage('performance')">📦 Performance Transportadoras</button>
     <button class="page-tab-btn" id="tab-btn-tempo" onclick="switchPage('tempo')">⏱️ Tempo na Usina</button>
+    <button class="page-tab-btn" id="tab-btn-mensal" onclick="switchPage('mensal')">📅 Visão Mensal</button>
   </div>
   <div class="dash-main page-section active" id="page-performance">
     <button class="mobile-filter-toggle" style="display:none" onclick="toggleMobileFilters(this)">
@@ -948,6 +949,77 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
           </thead>
           <tbody id="table-body-tempo"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-main page-section" id="page-mensal">
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+      <p style="font-size:12px; color:var(--text-3); max-width:640px;">Comparativo mês a mês. Esses dados vêm de um resumo pré-calculado no momento do upload — não é necessário carregar todos os registros do banco para ver esta página.</p>
+      <button class="btn" onclick="backfillMonthlySummaries()">🔄 Recalcular Resumos Mensais</button>
+    </div>
+
+    <div id="mensal-empty" style="display:none; text-align:center; color:var(--text-3); padding:60px 20px;">
+      Nenhum resumo mensal encontrado ainda. Clique em "Recalcular Resumos Mensais" para gerar a partir dos dados já carregados no Firebase.
+    </div>
+
+    <div id="mensal-content" style="display:none">
+      <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+        <div class="kpi-card" style="--kpi-color: var(--accent)">
+          <div class="kpi-label">Mês mais recente</div>
+          <div class="kpi-value" id="mensal-kpi-month" style="font-size:18px">—</div>
+          <div class="kpi-sub" id="mensal-kpi-month-sub"></div>
+        </div>
+        <div class="kpi-card" style="--kpi-color: var(--purple)">
+          <div class="kpi-label">Transportadora que Mais Movimentou</div>
+          <div class="kpi-value" id="mensal-kpi-top-carrier" style="font-size:16px">—</div>
+          <div class="kpi-sub" id="mensal-kpi-top-carrier-sub"></div>
+        </div>
+        <div class="kpi-card" style="--kpi-color: var(--blue)">
+          <div class="kpi-label">Tempo Médio na Usina</div>
+          <div class="kpi-value" id="mensal-kpi-tempo">--:--</div>
+          <div class="kpi-sub" id="mensal-kpi-tempo-sub"></div>
+        </div>
+        <div class="kpi-card" style="--kpi-color: var(--coral)">
+          <div class="kpi-label">Divergências no Mês</div>
+          <div class="kpi-value" id="mensal-kpi-div">0</div>
+          <div class="kpi-sub">pesagens críticas</div>
+        </div>
+      </div>
+
+      <div class="charts-grid-main">
+        <div class="chart-card" style="grid-column: 1 / -1;">
+          <button class="chart-export-btn" onclick="exportChartAsPNG('chart-mensal', 'evolucao_mensal.png', 'Evolução Mensal — Volume e Tempo Médio')" title="Exportar imagem">⬇</button>
+          <div class="chart-title">Evolução Mensal — Volume (t) e Tempo Médio na Usina</div>
+          <div class="chart-card-hint">Barras: volume total transportado · Linha: tempo médio na usina</div>
+          <div class="chart-container-main" style="height:340px">
+            <canvas id="chart-mensal"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <h3 style="font-family:var(--font-head); font-size:14px">Resumo por Mês</h3>
+          <button class="btn" style="font-size:11px; padding:5px 10px;" onclick="exportMensalXLSX()">📥 Exportar XLSX</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Mês</th>
+                <th>Volume (t)</th>
+                <th>Viagens</th>
+                <th>Tempo Médio Usina</th>
+                <th>Transportadora Top</th>
+                <th>Volume da Top (t)</th>
+                <th>Veículos</th>
+                <th>Divergências</th>
+              </tr>
+            </thead>
+            <tbody id="mensal-table-body"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -1676,6 +1748,7 @@ async function ensureMonthLoadedTempo(monthKey) {
 async function loadFromFirestore() {
   document.getElementById('loading-screen').classList.add('show');
   document.getElementById('loading-msg').innerText = 'Carregando mês mais recente...';
+  stateMensal.loaded = false;
   try {
     const [perfMetaDoc, tempoMetaDoc] = await Promise.all([
       db.collection('meta').doc('performance_months').get(),
@@ -1733,6 +1806,187 @@ async function loadAllMonths() {
   document.getElementById('loading-screen').classList.remove('show');
   showToast('✅ Todos os meses disponíveis foram carregados.');
 }
+
+/* ==================== VISÃO MENSAL (resumo pré-calculado) ====================
+   Em vez de reler todos os registros crus toda vez que a página é aberta,
+   mantemos 1 documento pequeno por mês na coleção "monthly_summary",
+   recalculado automaticamente a cada upload (ver handleUploadFile).
+   A aba "Visão Mensal" só lê esses resumos — leituras baratas e rápidas. */
+
+let stateMensal = { summaries: [], loaded: false, chart: null };
+
+async function computeAndSaveMonthlySummary(monthKey) {
+  const [perfSnap, tempoSnap] = await Promise.all([
+    db.collection('performance_entries').where('monthKey', '==', monthKey).get(),
+    db.collection('tempo_usina_entries').where('monthKey', '==', monthKey).get()
+  ]);
+
+  // ---- Agregação Performance ----
+  let volume = 0, trips = 0, div = 0;
+  const drivers = new Set(), vehicles = new Set();
+  const carrierVolume = new Map(); // nome -> volume
+  perfSnap.forEach(doc => {
+    const e = doc.data();
+    volume += e.weight || 0;
+    trips++;
+    if (e.isDiv) div++;
+    if (e.cpf && e.cpf.length >= 3) drivers.add(e.cpf);
+    if (e.placa && e.placa.length >= 3) vehicles.add(e.placa);
+    carrierVolume.set(e.carrierName, (carrierVolume.get(e.carrierName) || 0) + (e.weight || 0));
+  });
+  let topCarrier = null, topCarrierVolume = 0;
+  carrierVolume.forEach((v, name) => { if (v > topCarrierVolume) { topCarrierVolume = v; topCarrier = name; } });
+
+  // ---- Agregação Tempo na Usina ----
+  let tempoSum = 0, tempoCount = 0, tempoCritico = 0;
+  const tempoVehicles = new Set();
+  tempoSnap.forEach(doc => {
+    const e = doc.data();
+    if (typeof e.tempoUsina === 'number') {
+      tempoSum += e.tempoUsina; tempoCount++;
+      if (e.tempoUsina >= 120) tempoCritico++; // referência padrão de 2h
+    }
+    if (e.placa) tempoVehicles.add(e.placa);
+  });
+
+  const summary = {
+    monthKey,
+    volume, trips, div,
+    drivers: drivers.size, vehicles: vehicles.size,
+    topCarrier, topCarrierVolume,
+    tempoSum, tempoCount, tempoCritico, tempoVehicles: tempoVehicles.size,
+    updatedAt: Date.now()
+  };
+  await db.collection('monthly_summary').doc(monthKey).set(summary);
+  return summary;
+}
+
+async function backfillMonthlySummaries() {
+  const allMonths = new Set([...(state.months || []), ...(stateTempo.months || [])]);
+  if (!allMonths.size) { showToast('⚠️ Nenhum mês encontrado para recalcular.'); return; }
+  document.getElementById('loading-screen').classList.add('show');
+  let i = 0;
+  for (const mk of allMonths) {
+    i++;
+    document.getElementById('loading-msg').innerText = `Recalculando resumo mensal (${i}/${allMonths.size}): ${monthLabel(mk)}...`;
+    try { await computeAndSaveMonthlySummary(mk); } catch (err) { console.error('Falha ao recalcular', mk, err); }
+  }
+  document.getElementById('loading-screen').classList.remove('show');
+  showToast(`✅ Resumo de ${allMonths.size} mês(es) recalculado.`);
+  stateMensal.loaded = false;
+  await loadMonthlySummaries();
+}
+
+async function loadMonthlySummaries() {
+  const snap = await db.collection('monthly_summary').get();
+  const summaries = [];
+  snap.forEach(doc => summaries.push(doc.data()));
+  summaries.sort((a, b) => a.monthKey.localeCompare(b.monthKey));
+  stateMensal.summaries = summaries;
+  stateMensal.loaded = true;
+  renderMensalPage();
+}
+
+function renderMensalPage() {
+  const empty = document.getElementById('mensal-empty');
+  const content = document.getElementById('mensal-content');
+  const summaries = stateMensal.summaries;
+
+  if (!summaries.length) {
+    empty.style.display = 'block';
+    content.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  content.style.display = 'block';
+
+  const last = summaries[summaries.length - 1];
+
+  document.getElementById('mensal-kpi-month').innerText = monthLabel(last.monthKey);
+  document.getElementById('mensal-kpi-month-sub').innerText = `${last.trips.toLocaleString('pt-BR')} viagens · ${last.volume.toLocaleString('pt-BR',{maximumFractionDigits:1})} t`;
+
+  document.getElementById('mensal-kpi-top-carrier').innerText = last.topCarrier ? escapeHtml(last.topCarrier) : '—';
+  document.getElementById('mensal-kpi-top-carrier-sub').innerText = last.topCarrier ? `${last.topCarrierVolume.toLocaleString('pt-BR',{maximumFractionDigits:1})} t movimentadas` : '';
+
+  document.getElementById('mensal-kpi-tempo').innerText = last.tempoCount ? formatMinutes(last.tempoSum / last.tempoCount) : '--:--';
+  document.getElementById('mensal-kpi-tempo-sub').innerText = `${last.tempoCount.toLocaleString('pt-BR')} registros · ${last.tempoCritico} críticos (>2h)`;
+
+  document.getElementById('mensal-kpi-div').innerText = last.div;
+
+  renderMensalChart(summaries);
+  renderMensalTable(summaries);
+}
+
+function renderMensalChart(summaries) {
+  const labels = summaries.map(s => monthLabel(s.monthKey));
+  const volumeData = summaries.map(s => +s.volume.toFixed(1));
+  const tempoData = summaries.map(s => s.tempoCount ? +(s.tempoSum / s.tempoCount).toFixed(1) : null);
+
+  if (stateMensal.chart) stateMensal.chart.destroy();
+  stateMensal.chart = new Chart(document.getElementById('chart-mensal'), {
+    data: {
+      labels,
+      datasets: [
+        { type: 'bar', label: 'Volume (t)', data: volumeData, backgroundColor: 'rgba(0,200,170,0.65)', yAxisID: 'y', order: 2 },
+        { type: 'line', label: 'Tempo Médio na Usina', data: tempoData, borderColor: '#f0a500', backgroundColor: 'rgba(240,165,0,0.15)', yAxisID: 'y1', tension: 0.3, spanGaps: true, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: '#f0a500', order: 1 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#9aa5b8', font: { size: 11 }, boxWidth: 12 } },
+        tooltip: { callbacks: {
+          label: (ctx) => ctx.dataset.yAxisID === 'y1'
+            ? `Tempo médio: ${ctx.raw === null ? '--:--' : formatMinutes(ctx.raw)}`
+            : `Volume: ${ctx.raw.toLocaleString('pt-BR')} t`
+        } }
+      },
+      scales: {
+        x: { ticks: { color: '#9aa5b8', font: { size: 11 } }, grid: { display: false } },
+        y: { position: 'left', beginAtZero: true, ticks: { color: '#9aa5b8', font: { size: 10 }, callback: v => v + ' t' }, grid: { color: '#1a2235' }, title: { display: true, text: 'Volume (t)', color: '#9aa5b8', font: { size: 10 } } },
+        y1: { position: 'right', beginAtZero: true, ticks: { color: '#f0a500', font: { size: 10 }, callback: v => formatMinutes(v) }, grid: { display: false }, title: { display: true, text: 'Tempo médio', color: '#f0a500', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function renderMensalTable(summaries) {
+  const tbody = document.getElementById('mensal-table-body');
+  tbody.innerHTML = '';
+  [...summaries].reverse().forEach(s => {
+    const tr = document.createElement('tr');
+    const avgTempo = s.tempoCount ? formatMinutes(s.tempoSum / s.tempoCount) : '--:--';
+    tr.innerHTML = `<td>${escapeHtml(monthLabel(s.monthKey))}</td>` +
+      `<td>${s.volume.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td>` +
+      `<td>${s.trips.toLocaleString('pt-BR')}</td>` +
+      `<td>${avgTempo}</td>` +
+      `<td>${s.topCarrier ? escapeHtml(s.topCarrier) : '—'}</td>` +
+      `<td>${s.topCarrierVolume ? s.topCarrierVolume.toLocaleString('pt-BR',{maximumFractionDigits:1}) : '—'}</td>` +
+      `<td>${s.vehicles}</td>` +
+      `<td style="color:${s.div>0?'var(--coral)':'inherit'}">${s.div}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function exportMensalXLSX() {
+  if (!stateMensal.summaries.length) return alert("Nenhum dado para exportar");
+  const dataToExport = stateMensal.summaries.map(s => ({
+    "Mês": monthLabel(s.monthKey),
+    "Volume (t)": s.volume.toFixed(1),
+    "Viagens": s.trips,
+    "Tempo Médio na Usina": s.tempoCount ? formatMinutes(s.tempoSum / s.tempoCount) : '--:--',
+    "Transportadora Top": s.topCarrier || '',
+    "Volume da Top (t)": s.topCarrierVolume ? s.topCarrierVolume.toFixed(1) : '',
+    "Veículos": s.vehicles,
+    "Divergências": s.div
+  }));
+  const ws = XLSX.utils.json_to_sheet(dataToExport);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Visão Mensal");
+  XLSX.writeFile(wb, "Visao_Mensal_TransAnalytics.xlsx");
+}
+/* ==================== FIM VISÃO MENSAL ==================== */
 
 function fmtDate(ts) {
   if (!ts) return '—';
@@ -1806,6 +2060,7 @@ function switchPage(name) {
   document.getElementById('page-' + name).classList.add('active');
   document.querySelectorAll('.page-tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-btn-' + name).classList.add('active');
+  if (name === 'mensal' && !stateMensal.loaded) loadMonthlySummaries();
   // força redimensionamento dos gráficos da página que ficou visível
   setTimeout(() => resizeAllCharts(), 50);
 }
@@ -2044,6 +2299,15 @@ function handleUploadFile(file, statusElId) {
       if (tempoFlat.length) tasks.push(saveEntriesToFirestore('tempo_usina_entries', tempoFlat, document.getElementById('loading-msg')));
       await Promise.all(tasks);
 
+      // Atualiza o resumo mensal (coleção leve) para os meses afetados por este upload
+      const affectedMonths = new Set([...perfFlat.map(e => e.monthKey), ...tempoFlat.map(e => e.monthKey)].filter(m => m && m !== 'Sem Data'));
+      if (affectedMonths.size) {
+        document.getElementById('loading-msg').innerText = 'Atualizando resumos mensais...';
+        for (const mk of affectedMonths) {
+          try { await computeAndSaveMonthlySummary(mk); } catch (err) { console.error('Resumo mensal falhou para', mk, err); }
+        }
+      }
+
       statusEl.innerText = `✅ ${perfFlat.length + tempoFlat.length} registros sincronizados.`;
       document.getElementById('loading-msg').innerText = 'Carregando dashboard...';
       await loadFromFirestore();
@@ -2070,6 +2334,11 @@ document.getElementById('file-input-tempo').addEventListener('change', e => {
 });
 
 function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+
+// Escapa dados vindos de planilhas antes de inserir via innerHTML — previne XSS armazenado
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
 
 function detectColumns(headers) {
   const findCol = (keys) => headers.findIndex(h => keys.some(k => norm(h).includes(k)));
@@ -2220,7 +2489,7 @@ function populateFilters() {
     const div = document.createElement('div');
     div.className = 'multi-select-item';
     div.dataset.material = m.toLowerCase();
-    div.innerHTML = `<input type="checkbox" value="${m}" ${state.selectedMaterials.has(m) ? "checked" : ""}> <span>${m}</span>`;
+    div.innerHTML = `<input type="checkbox" value="${escapeHtml(m)}" ${state.selectedMaterials.has(m) ? "checked" : ""}> <span>${escapeHtml(m)}</span>`;
     div.onclick = e => {
       const cb = div.querySelector('input');
       if (e.target !== cb) cb.checked = !cb.checked;
@@ -2407,7 +2676,7 @@ function renderIdleTable(plateStats, threshold) {
     tr.style.cursor = 'pointer';
     tr.title = 'Clique para ver o histórico desta placa';
     const lastDate = new Date(p.lastTs).toLocaleDateString('pt-BR');
-    tr.innerHTML = `<td>${p.placa}</td><td>${p.carrier}</td><td>${lastDate}</td><td>${p.daysIdle} dias</td><td>${p.count}</td>`;
+    tr.innerHTML = `<td>${escapeHtml(p.placa)}</td><td>${escapeHtml(p.carrier)}</td><td>${lastDate}</td><td>${p.daysIdle} dias</td><td>${p.count}</td>`;
     tr.onclick = () => setPlateFilter(p.placa);
     tbody.appendChild(tr);
   });
@@ -2502,7 +2771,7 @@ function renderTable(data) {
     const tr = document.createElement('tr');
     tr.style.cursor = 'pointer';
     tr.title = 'Clique para filtrar esta transportadora';
-    tr.innerHTML = `<td>${c.name}</td><td>${c.records}</td><td>${c.weight.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td><td>${(c.weight/c.records).toLocaleString('pt-BR',{maximumFractionDigits:1})}</td><td>${c.drivers.size}</td><td>${c.vehicles.size}</td><td style="color:${c.div>0?'var(--coral)':'inherit'}">${c.div}</td>`;
+    tr.innerHTML = `<td>${escapeHtml(c.name)}</td><td>${c.records}</td><td>${c.weight.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td><td>${(c.weight/c.records).toLocaleString('pt-BR',{maximumFractionDigits:1})}</td><td>${c.drivers.size}</td><td>${c.vehicles.size}</td><td style="color:${c.div>0?'var(--coral)':'inherit'}">${c.div}</td>`;
     tr.onclick = () => setCarrierFilter(c.name);
     tbody.appendChild(tr);
   });
@@ -2673,7 +2942,7 @@ function populateFiltersTempo() {
     const div = document.createElement('div');
     div.className = 'multi-select-item';
     div.dataset.material = m.toLowerCase();
-    div.innerHTML = `<input type="checkbox" value="${m}" ${stateTempo.selectedMaterials.has(m) ? "checked" : ""}> <span>${m}</span>`;
+    div.innerHTML = `<input type="checkbox" value="${escapeHtml(m)}" ${stateTempo.selectedMaterials.has(m) ? "checked" : ""}> <span>${escapeHtml(m)}</span>`;
     div.onclick = e => {
       const cb = div.querySelector('input');
       if (e.target !== cb) cb.checked = !cb.checked;
@@ -3003,7 +3272,7 @@ function renderCarrierTableTempo() {
     const tr = document.createElement('tr');
     tr.style.cursor = 'pointer';
     tr.title = 'Clique para filtrar esta transportadora';
-    tr.innerHTML = `<td>${c.name}</td><td>${c.count}</td><td>${formatMinutes(c.sum/c.count)}</td><td>${formatMinutes(c.min)}</td><td>${formatMinutes(c.max)}</td><td>${c.vehicles.size}</td>`;
+    tr.innerHTML = `<td>${escapeHtml(c.name)}</td><td>${c.count}</td><td>${formatMinutes(c.sum/c.count)}</td><td>${formatMinutes(c.min)}</td><td>${formatMinutes(c.max)}</td><td>${c.vehicles.size}</td>`;
     tr.onclick = () => setCarrierFilterTempo(c.name);
     tbody.appendChild(tr);
   });
@@ -3032,7 +3301,7 @@ function renderWorstTimesTable(filteredEntries, criticalThresholdMin) {
     tr.title = 'Clique para filtrar esta placa';
     const entradaStr = e.entradaTs ? new Date(e.entradaTs).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '--';
     const saidaStr = e.saidaTs ? new Date(e.saidaTs).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '--';
-    tr.innerHTML = `<td>${e.placa}</td><td>${carrierName}</td><td>${e.material}</td><td>${entradaStr}</td><td>${saidaStr}</td><td>${formatMinutes(e.tempoUsina)}</td><td>${e.tempoEntrePesos !== null ? formatMinutes(e.tempoEntrePesos) : '--:--'}</td>`;
+    tr.innerHTML = `<td>${escapeHtml(e.placa)}</td><td>${escapeHtml(carrierName)}</td><td>${escapeHtml(e.material)}</td><td>${entradaStr}</td><td>${saidaStr}</td><td>${formatMinutes(e.tempoUsina)}</td><td>${e.tempoEntrePesos !== null ? formatMinutes(e.tempoEntrePesos) : '--:--'}</td>`;
     tr.onclick = () => setPlateFilterTempo(e.placa);
     tbody.appendChild(tr);
   });
