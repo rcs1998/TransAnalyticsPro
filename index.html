@@ -410,6 +410,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
   <div class="tv-channel-row">
     <button class="tv-ch-btn active" id="tv-ch-perf" onclick="tvSetChannel('perf')">📦 Performance</button>
     <button class="tv-ch-btn" id="tv-ch-tempo" onclick="tvSetChannel('tempo')">⏱️ Tempo na Usina</button>
+    <button class="tv-ch-btn" id="tv-ch-mensal" onclick="tvSetChannel('mensal')">📅 Visão Mensal</button>
     <span class="tv-channel-note">Alterna automaticamente entre canais</span>
   </div>
 
@@ -482,6 +483,19 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
       <div class="tv-chart-panel" style="border-right:none; border-bottom:none">
         <div class="tv-chart-label">Movimentação e Tempo Médio por Hora do Dia</div>
         <div class="tv-chart-inner"><canvas id="tvc-tempo-2"></canvas></div>
+      </div>
+    </div>
+
+    <div class="tv-slide tv-slide-kpi" id="tv-s-mensal-0">
+      <div class="tv-kpi-col">
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Mês Mais Recente</div><div class="tv-kpi-value" id="tv-k-mensal-month" style="color:var(--accent); font-size:26px">—</div><div class="tv-kpi-sub" id="tv-k-mensal-month-sub"></div></div>
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Transportadora Que Mais Movimentou</div><div class="tv-kpi-value" id="tv-k-mensal-top" style="color:var(--purple); font-size:20px">—</div><div class="tv-kpi-sub" id="tv-k-mensal-top-sub"></div></div>
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Tempo Médio na Usina</div><div class="tv-kpi-value" id="tv-k-mensal-tempo" style="color:var(--blue); font-size:26px">—</div><div class="tv-kpi-sub" id="tv-k-mensal-tempo-sub"></div></div>
+        <div class="tv-kpi-card"><div class="tv-kpi-label">Divergências no Mês</div><div class="tv-kpi-value" id="tv-k-mensal-div" style="color:var(--coral)">—</div><div class="tv-kpi-sub">pesagens críticas</div></div>
+      </div>
+      <div class="tv-chart-panel" style="border-right:none; border-bottom:none">
+        <div class="tv-chart-label">Evolução Mensal — Volume (t) e Tempo Médio na Usina</div>
+        <div class="tv-chart-inner"><canvas id="tvc-mensal-0"></canvas></div>
       </div>
     </div>
   </div>
@@ -956,7 +970,34 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
   <div class="dash-main page-section" id="page-mensal">
     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
       <p style="font-size:12px; color:var(--text-3); max-width:640px;">Comparativo mês a mês. Esses dados vêm de um resumo pré-calculado no momento do upload — não é necessário carregar todos os registros do banco para ver esta página.</p>
-      <button class="btn" onclick="backfillMonthlySummaries()">🔄 Recalcular Resumos Mensais</button>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn" onclick="diagnoseDuplicates()">🔍 Diagnosticar Duplicados</button>
+        <button class="btn" onclick="backfillMonthlySummaries()">🔄 Recalcular Resumos Mensais</button>
+      </div>
+    </div>
+
+    <div id="dup-results" style="display:none; margin-bottom:20px;">
+      <div class="table-card">
+        <div class="table-header">
+          <h3 style="font-family:var(--font-head); font-size:14px">Diagnóstico de Possíveis Duplicados (por mês)</h3>
+          <span style="font-size:11px; color:var(--text-3)">Compara transportadora + placa + material + peso + dia (ignora hora exata)</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Mês</th>
+                <th>Registros Totais</th>
+                <th>Registros Suspeitos de Duplicação</th>
+                <th>Volume Potencialmente Duplicado (t)</th>
+                <th>% do Volume do Mês</th>
+              </tr>
+            </thead>
+            <tbody id="dup-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="dup-detail" style="margin-top:12px; font-size:12px; color:var(--text-2);"></div>
     </div>
 
     <div id="mensal-empty" style="display:none; text-align:center; color:var(--text-3); padding:60px 20px;">
@@ -1099,7 +1140,8 @@ function tvGetSavedInterval() {
 const tv = {
   channel: 'perf',
   slide: 0,
-  slides: { perf: 2, tempo: 3 },
+  slides: { perf: 2, tempo: 3, mensal: 1 },
+  channelOrder: ['perf', 'tempo', 'mensal'],
   playing: true,
   ms: tvGetSavedInterval(),
   timer: null,
@@ -1108,10 +1150,12 @@ const tv = {
 
 const TV_SLIDES = {
   perf:  ['tv-s-perf-0',  'tv-s-perf-1'],
-  tempo: ['tv-s-tempo-0', 'tv-s-tempo-1', 'tv-s-tempo-2']
+  tempo: ['tv-s-tempo-0', 'tv-s-tempo-1', 'tv-s-tempo-2'],
+  mensal: ['tv-s-mensal-0']
 };
 
-function openTVMode() {
+async function openTVMode() {
+  if (!stateMensal.loaded) { try { await loadMonthlySummaries(); } catch (err) { console.error('Falha ao carregar visão mensal para TV:', err); } }
   tvBuildKPIs();
   tv.channel = 'perf';
   tv.slide = 0;
@@ -1147,6 +1191,7 @@ function tvKey(e) {
   else if (e.key === 'p' || e.key === 'P') tvTogglePlay();
   else if (e.key === '1') tvSetChannel('perf');
   else if (e.key === '2') tvSetChannel('tempo');
+  else if (e.key === '3') tvSetChannel('mensal');
 }
 
 function tvRender() {
@@ -1156,6 +1201,7 @@ function tvRender() {
   // mostra/oculta canais
   document.querySelectorAll('[id^="tv-s-perf-"]').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('[id^="tv-s-tempo-"]').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('[id^="tv-s-mensal-"]').forEach(el => el.classList.remove('active'));
   const slideId = TV_SLIDES[ch][tv.slide];
   const el = document.getElementById(slideId);
   if (el) el.classList.add('active');
@@ -1163,6 +1209,7 @@ function tvRender() {
   // abas de canal
   document.getElementById('tv-ch-perf').classList.toggle('active', ch === 'perf');
   document.getElementById('tv-ch-tempo').classList.toggle('active', ch === 'tempo');
+  document.getElementById('tv-ch-mensal').classList.toggle('active', ch === 'mensal');
 
   // dots
   const dotsEl = document.getElementById('tv-dots');
@@ -1191,7 +1238,8 @@ function tvNext() {
   if (tv.slide >= total) {
     // fim do canal: troca de canal automaticamente
     tv.slide = 0;
-    tv.channel = tv.channel === 'perf' ? 'tempo' : 'perf';
+    const idx = tv.channelOrder.indexOf(tv.channel);
+    tv.channel = tv.channelOrder[(idx + 1) % tv.channelOrder.length];
   }
   tvRender();
   if (tv.playing) tvStartPlay();
@@ -1200,7 +1248,8 @@ function tvNext() {
 function tvPrev() {
   tv.slide--;
   if (tv.slide < 0) {
-    tv.channel = tv.channel === 'perf' ? 'tempo' : 'perf';
+    const idx = tv.channelOrder.indexOf(tv.channel);
+    tv.channel = tv.channelOrder[(idx - 1 + tv.channelOrder.length) % tv.channelOrder.length];
     tv.slide = tv.slides[tv.channel] - 1;
   }
   tvRender();
@@ -1260,6 +1309,13 @@ function tvBuildKPIs() {
   s('tv-k-tcar',  g('kpi-tempo-carriers'));
   s('tv-k-tcrit', g('kpi-tempo-criticas'));
   s('tv-k-tcrit-sub', g('kpi-tempo-criticas-sub'));
+  s('tv-k-mensal-month', g('mensal-kpi-month'));
+  s('tv-k-mensal-month-sub', g('mensal-kpi-month-sub'));
+  s('tv-k-mensal-top', g('mensal-kpi-top-carrier'));
+  s('tv-k-mensal-top-sub', g('mensal-kpi-top-carrier-sub'));
+  s('tv-k-mensal-tempo', g('mensal-kpi-tempo'));
+  s('tv-k-mensal-tempo-sub', g('mensal-kpi-tempo-sub'));
+  s('tv-k-mensal-div', g('mensal-kpi-div'));
   const hn = document.getElementById('header-filename')?.innerText || '';
   s('tv-meta', hn);
 }
@@ -1475,12 +1531,42 @@ function tvBuildSlideTempo2() {
     });
 }
 
+// Slide 0 — Visão Mensal: volume (t) e tempo médio na usina, por mês
+function tvBuildSlideMensal0() {
+  const summaries = stateMensal.summaries || [];
+  const chartData = {
+    labels: summaries.map(s => monthLabel(s.monthKey)),
+    datasets: [
+      { type: 'bar', label: 'Volume (t)', data: summaries.map(s => +s.volume.toFixed(1)), backgroundColor: '#00c8aa', yAxisID: 'y', order: 2 },
+      { type: 'line', label: 'Tempo Médio', data: summaries.map(s => s.tempoCount ? +(s.tempoSum / s.tempoCount).toFixed(1) : null), borderColor: '#f0a500', backgroundColor: 'rgba(240,165,0,0.15)', yAxisID: 'y1', tension: 0.3, spanGaps: true, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: '#f0a500', order: 1 }
+    ]
+  };
+  tvMakeChart('tvc-mensal-0', 'bar', chartData, {
+    interaction: { mode: 'index', intersect: false },
+    layout: { padding: { top: 26, right: 12, bottom: 4 } },
+    plugins: {
+      legend: { display: true, position: 'top', labels: { color: dark_TV, font: { size: 13, weight: '600' }, boxWidth: 14 } },
+      tooltip: { callbacks: {
+        label: (ctx) => ctx.dataset.yAxisID === 'y1'
+          ? `Tempo médio: ${ctx.raw === null ? '--:--' : formatMinutes(ctx.raw)}`
+          : `Volume: ${ctx.raw.toLocaleString('pt-BR')} t`
+      } }
+    },
+    scales: {
+      x: { ticks: { color: dark_TV, font: { size: 12, weight: '600' } }, grid: { display: false } },
+      y: { position: 'left', beginAtZero: true, ticks: { color: dark_TV, font: { size: 12, weight: '600' }, callback: v => v + ' t' }, grid: { color: gridC_TV } },
+      y1: { position: 'right', beginAtZero: true, ticks: { color: '#f0a500', font: { size: 12, weight: '600' }, callback: v => formatMinutes(v) }, grid: { display: false } }
+    }
+  });
+}
+
 const TV_SLIDE_BUILDERS = {
   'tv-s-perf-0': tvBuildSlidePerf0,
   'tv-s-perf-1': tvBuildSlidePerf1,
   'tv-s-tempo-0': tvBuildSlideTempo0,
   'tv-s-tempo-1': tvBuildSlideTempo1,
-  'tv-s-tempo-2': tvBuildSlideTempo2
+  'tv-s-tempo-2': tvBuildSlideTempo2,
+  'tv-s-mensal-0': tvBuildSlideMensal0
 };
 /* ==================== FIM MODO TV ==================== */
 
@@ -1876,6 +1962,105 @@ async function backfillMonthlySummaries() {
   stateMensal.loaded = false;
   await loadMonthlySummaries();
 }
+
+/* ==================== DIAGNÓSTICO DE DUPLICADOS ====================
+   Agrupa registros por transportadora+placa+material+peso+DIA (ignorando a hora exata).
+   Se um upload repetido gerar o mesmo registro com timestamp levemente diferente,
+   o ID único do Firestore não detecta a duplicata (IDs diferentes) — mas esse
+   agrupamento por dia detecta, porque ignora a hora. */
+async function diagnoseDuplicates() {
+  const monthsToCheck = [...new Set([...(state.months || [])])];
+  if (!monthsToCheck.length) { showToast('⚠️ Nenhum mês encontrado para diagnosticar.'); return; }
+
+  document.getElementById('loading-screen').classList.add('show');
+  const results = [];
+  const detailsByMonth = {};
+
+  for (let i = 0; i < monthsToCheck.length; i++) {
+    const mk = monthsToCheck[i];
+    document.getElementById('loading-msg').innerText = `Diagnosticando ${monthLabel(mk)} (${i+1}/${monthsToCheck.length})...`;
+    const snap = await db.collection('performance_entries').where('monthKey', '==', mk).get();
+
+    const groups = new Map(); // chave -> { count, weight, entries: [] }
+    let totalVolume = 0, totalRecords = 0;
+    snap.forEach(doc => {
+      const e = doc.data();
+      totalRecords++;
+      totalVolume += e.weight || 0;
+      const day = e.dateTs ? new Date(e.dateTs).toISOString().slice(0, 10) : 'sem-data';
+      const key = [e.carrierName, e.placa, e.material, (e.weight || 0).toFixed(2), day].join('|');
+      if (!groups.has(key)) groups.set(key, { count: 0, weight: e.weight || 0, carrierName: e.carrierName, placa: e.placa, material: e.material, day });
+      groups.get(key).count++;
+    });
+
+    let suspectRecords = 0, suspectVolume = 0;
+    const suspectGroups = [];
+    groups.forEach(g => {
+      if (g.count > 1) {
+        suspectRecords += (g.count - 1); // conta os "extras" além do primeiro
+        suspectVolume += g.weight * (g.count - 1);
+        suspectGroups.push(g);
+      }
+    });
+    suspectGroups.sort((a, b) => b.count - a.count);
+
+    results.push({
+      monthKey: mk, totalRecords, totalVolume,
+      suspectRecords, suspectVolume,
+      pct: totalVolume > 0 ? (suspectVolume / totalVolume * 100) : 0
+    });
+    detailsByMonth[mk] = suspectGroups.slice(0, 15);
+  }
+
+  document.getElementById('loading-screen').classList.remove('show');
+  renderDuplicateDiagnosis(results, detailsByMonth);
+}
+
+function renderDuplicateDiagnosis(results, detailsByMonth) {
+  const panel = document.getElementById('dup-results');
+  panel.style.display = 'block';
+  const tbody = document.getElementById('dup-table-body');
+  tbody.innerHTML = '';
+
+  results.sort((a, b) => b.monthKey.localeCompare(a.monthKey));
+  results.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.style.cursor = r.suspectRecords > 0 ? 'pointer' : 'default';
+    if (r.suspectRecords > 0) tr.title = 'Clique para ver os grupos suspeitos deste mês';
+    tr.innerHTML = `<td>${escapeHtml(monthLabel(r.monthKey))}</td>` +
+      `<td>${r.totalRecords.toLocaleString('pt-BR')}</td>` +
+      `<td style="color:${r.suspectRecords>0?'var(--coral)':'inherit'}">${r.suspectRecords.toLocaleString('pt-BR')}</td>` +
+      `<td style="color:${r.suspectRecords>0?'var(--coral)':'inherit'}">${r.suspectVolume.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td>` +
+      `<td style="color:${r.pct>5?'var(--coral)':(r.pct>0?'var(--amber)':'inherit')}">${r.pct.toFixed(1)}%</td>`;
+    if (r.suspectRecords > 0) {
+      tr.onclick = () => showDuplicateDetail(r.monthKey, detailsByMonth[r.monthKey]);
+    }
+    tbody.appendChild(tr);
+  });
+
+  const worst = results.find(r => r.suspectRecords > 0);
+  if (worst) {
+    showDuplicateDetail(worst.monthKey, detailsByMonth[worst.monthKey]);
+    showToast(`⚠️ Encontrados possíveis duplicados em ${results.filter(r=>r.suspectRecords>0).length} mês(es).`, 5000);
+  } else {
+    document.getElementById('dup-detail').innerHTML = '<span style="color:var(--green)">Nenhum grupo duplicado encontrado em nenhum mês verificado.</span>';
+    showToast('✅ Nenhuma duplicata encontrada.');
+  }
+}
+
+function showDuplicateDetail(monthKey, groups) {
+  const el = document.getElementById('dup-detail');
+  if (!groups || !groups.length) { el.innerHTML = `<strong>${escapeHtml(monthLabel(monthKey))}</strong>: nenhum grupo suspeito.`; return; }
+  let html = `<strong>${escapeHtml(monthLabel(monthKey))}</strong> — top grupos suspeitos (mesma transportadora+placa+material+peso+dia aparecendo mais de uma vez):<br><br>`;
+  html += '<table style="width:100%; font-size:11px; border-collapse:collapse;">';
+  html += '<tr style="color:var(--text-3); text-align:left;"><th style="padding:4px 8px;">Transportadora</th><th style="padding:4px 8px;">Placa</th><th style="padding:4px 8px;">Material</th><th style="padding:4px 8px;">Peso</th><th style="padding:4px 8px;">Dia</th><th style="padding:4px 8px;">Ocorrências</th></tr>';
+  groups.forEach(g => {
+    html += `<tr style="border-top:1px solid var(--border);"><td style="padding:4px 8px;">${escapeHtml(g.carrierName)}</td><td style="padding:4px 8px;">${escapeHtml(g.placa)}</td><td style="padding:4px 8px;">${escapeHtml(g.material)}</td><td style="padding:4px 8px;">${g.weight.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td><td style="padding:4px 8px;">${g.day}</td><td style="padding:4px 8px; color:var(--coral); font-weight:600;">${g.count}x</td></tr>`;
+  });
+  html += '</table>';
+  el.innerHTML = html;
+}
+/* ==================== FIM DIAGNÓSTICO DE DUPLICADOS ==================== */
 
 async function loadMonthlySummaries() {
   const snap = await db.collection('monthly_summary').get();
