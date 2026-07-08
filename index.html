@@ -486,13 +486,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
       </div>
     </div>
 
-    <div class="tv-slide tv-slide-kpi" id="tv-s-mensal-0">
-      <div class="tv-kpi-col">
-        <div class="tv-kpi-card"><div class="tv-kpi-label">Mês Mais Recente</div><div class="tv-kpi-value" id="tv-k-mensal-month" style="color:var(--accent); font-size:26px">—</div><div class="tv-kpi-sub" id="tv-k-mensal-month-sub"></div></div>
-        <div class="tv-kpi-card"><div class="tv-kpi-label">Transportadora Que Mais Movimentou</div><div class="tv-kpi-value" id="tv-k-mensal-top" style="color:var(--purple); font-size:20px">—</div><div class="tv-kpi-sub" id="tv-k-mensal-top-sub"></div></div>
-        <div class="tv-kpi-card"><div class="tv-kpi-label">Tempo Médio na Usina</div><div class="tv-kpi-value" id="tv-k-mensal-tempo" style="color:var(--blue); font-size:26px">—</div><div class="tv-kpi-sub" id="tv-k-mensal-tempo-sub"></div></div>
-        <div class="tv-kpi-card"><div class="tv-kpi-label">Divergências no Mês</div><div class="tv-kpi-value" id="tv-k-mensal-div" style="color:var(--coral)">—</div><div class="tv-kpi-sub">pesagens críticas</div></div>
-      </div>
+    <div class="tv-slide tv-slide-single" id="tv-s-mensal-0">
       <div class="tv-chart-panel" style="border-right:none; border-bottom:none">
         <div class="tv-chart-label">Evolução Mensal — Volume (t) e Tempo Médio na Usina</div>
         <div class="tv-chart-inner"><canvas id="tvc-mensal-0"></canvas></div>
@@ -1309,13 +1303,6 @@ function tvBuildKPIs() {
   s('tv-k-tcar',  g('kpi-tempo-carriers'));
   s('tv-k-tcrit', g('kpi-tempo-criticas'));
   s('tv-k-tcrit-sub', g('kpi-tempo-criticas-sub'));
-  s('tv-k-mensal-month', g('mensal-kpi-month'));
-  s('tv-k-mensal-month-sub', g('mensal-kpi-month-sub'));
-  s('tv-k-mensal-top', g('mensal-kpi-top-carrier'));
-  s('tv-k-mensal-top-sub', g('mensal-kpi-top-carrier-sub'));
-  s('tv-k-mensal-tempo', g('mensal-kpi-tempo'));
-  s('tv-k-mensal-tempo-sub', g('mensal-kpi-tempo-sub'));
-  s('tv-k-mensal-div', g('mensal-kpi-div'));
   const hn = document.getElementById('header-filename')?.innerText || '';
   s('tv-meta', hn);
 }
@@ -1983,13 +1970,27 @@ async function diagnoseDuplicates() {
 
     const groups = new Map(); // chave -> { count, weight, entries: [] }
     let totalVolume = 0, totalRecords = 0;
+    let hasMovimento = false;
     snap.forEach(doc => {
       const e = doc.data();
       totalRecords++;
       totalVolume += e.weight || 0;
-      const day = e.dateTs ? new Date(e.dateTs).toISOString().slice(0, 10) : 'sem-data';
-      const key = [e.carrierName, e.placa, e.material, (e.weight || 0).toFixed(2), day].join('|');
-      if (!groups.has(key)) groups.set(key, { count: 0, weight: e.weight || 0, carrierName: e.carrierName, placa: e.placa, material: e.material, day });
+      let key, exact;
+      if (e.movimento) {
+        // Chave exata: número de Movimento nunca se repete de verdade.
+        // Como já é a chave do documento (mov_...), isso só detecta duplicata
+        // se por algum motivo dois documentos diferentes guardaram o mesmo movimento.
+        key = 'mov:' + e.movimento;
+        exact = true;
+        hasMovimento = true;
+      } else {
+        // Sem Movimento na planilha original: estimativa por transportadora+placa+material+peso+dia.
+        // Pode gerar falsos positivos (duas viagens legítimas iguais no mesmo dia).
+        const day = e.dateTs ? new Date(e.dateTs).toISOString().slice(0, 10) : 'sem-data';
+        key = [e.carrierName, e.placa, e.material, (e.weight || 0).toFixed(2), day].join('|');
+        exact = false;
+      }
+      if (!groups.has(key)) groups.set(key, { count: 0, weight: e.weight || 0, carrierName: e.carrierName, placa: e.placa, material: e.material, day: e.dateTs ? new Date(e.dateTs).toISOString().slice(0,10) : 'sem-data', exact });
       groups.get(key).count++;
     });
 
@@ -2002,11 +2003,11 @@ async function diagnoseDuplicates() {
         suspectGroups.push(g);
       }
     });
-    suspectGroups.sort((a, b) => b.count - a.count);
+    suspectGroups.sort((a, b) => (b.exact - a.exact) || (b.count - a.count));
 
     results.push({
       monthKey: mk, totalRecords, totalVolume,
-      suspectRecords, suspectVolume,
+      suspectRecords, suspectVolume, hasMovimento,
       pct: totalVolume > 0 ? (suspectVolume / totalVolume * 100) : 0
     });
     detailsByMonth[mk] = suspectGroups.slice(0, 15);
@@ -2027,7 +2028,10 @@ function renderDuplicateDiagnosis(results, detailsByMonth) {
     const tr = document.createElement('tr');
     tr.style.cursor = r.suspectRecords > 0 ? 'pointer' : 'default';
     if (r.suspectRecords > 0) tr.title = 'Clique para ver os grupos suspeitos deste mês';
-    tr.innerHTML = `<td>${escapeHtml(monthLabel(r.monthKey))}</td>` +
+    const confiabilidade = r.hasMovimento
+      ? '<span style="color:var(--green); font-size:10px;">✓ confirmado (via Movimento)</span>'
+      : '<span style="color:var(--amber); font-size:10px;">⚠ estimativa (sem Movimento na planilha)</span>';
+    tr.innerHTML = `<td>${escapeHtml(monthLabel(r.monthKey))}<br>${confiabilidade}</td>` +
       `<td>${r.totalRecords.toLocaleString('pt-BR')}</td>` +
       `<td style="color:${r.suspectRecords>0?'var(--coral)':'inherit'}">${r.suspectRecords.toLocaleString('pt-BR')}</td>` +
       `<td style="color:${r.suspectRecords>0?'var(--coral)':'inherit'}">${r.suspectVolume.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td>` +
@@ -2051,11 +2055,17 @@ function renderDuplicateDiagnosis(results, detailsByMonth) {
 function showDuplicateDetail(monthKey, groups) {
   const el = document.getElementById('dup-detail');
   if (!groups || !groups.length) { el.innerHTML = `<strong>${escapeHtml(monthLabel(monthKey))}</strong>: nenhum grupo suspeito.`; return; }
-  let html = `<strong>${escapeHtml(monthLabel(monthKey))}</strong> — top grupos suspeitos (mesma transportadora+placa+material+peso+dia aparecendo mais de uma vez):<br><br>`;
+  const anyExact = groups.some(g => g.exact);
+  const anyEstimate = groups.some(g => !g.exact);
+  let warn = '';
+  if (anyEstimate) warn = '<p style="color:var(--amber); margin:6px 0;">⚠ Esta planilha não tem coluna de Movimento identificada — os grupos abaixo são uma <strong>estimativa</strong> por transportadora+placa+material+peso+dia, e podem incluir viagens legítimas que só coincidem nesses campos. Confira manualmente antes de excluir qualquer registro.</p>';
+  if (anyExact) warn += '<p style="color:var(--green); margin:6px 0;">✓ Grupos marcados como confirmados usam o número de Movimento (identificador único) — duplicata real.</p>';
+  let html = `<strong>${escapeHtml(monthLabel(monthKey))}</strong> — top grupos suspeitos:<br>${warn}<br>`;
   html += '<table style="width:100%; font-size:11px; border-collapse:collapse;">';
-  html += '<tr style="color:var(--text-3); text-align:left;"><th style="padding:4px 8px;">Transportadora</th><th style="padding:4px 8px;">Placa</th><th style="padding:4px 8px;">Material</th><th style="padding:4px 8px;">Peso</th><th style="padding:4px 8px;">Dia</th><th style="padding:4px 8px;">Ocorrências</th></tr>';
+  html += '<tr style="color:var(--text-3); text-align:left;"><th style="padding:4px 8px;">Transportadora</th><th style="padding:4px 8px;">Placa</th><th style="padding:4px 8px;">Material</th><th style="padding:4px 8px;">Peso</th><th style="padding:4px 8px;">Dia</th><th style="padding:4px 8px;">Ocorrências</th><th style="padding:4px 8px;">Confiabilidade</th></tr>';
   groups.forEach(g => {
-    html += `<tr style="border-top:1px solid var(--border);"><td style="padding:4px 8px;">${escapeHtml(g.carrierName)}</td><td style="padding:4px 8px;">${escapeHtml(g.placa)}</td><td style="padding:4px 8px;">${escapeHtml(g.material)}</td><td style="padding:4px 8px;">${g.weight.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td><td style="padding:4px 8px;">${g.day}</td><td style="padding:4px 8px; color:var(--coral); font-weight:600;">${g.count}x</td></tr>`;
+    const tag = g.exact ? '<span style="color:var(--green);">✓ confirmado</span>' : '<span style="color:var(--amber);">⚠ estimativa</span>';
+    html += `<tr style="border-top:1px solid var(--border);"><td style="padding:4px 8px;">${escapeHtml(g.carrierName)}</td><td style="padding:4px 8px;">${escapeHtml(g.placa)}</td><td style="padding:4px 8px;">${escapeHtml(g.material)}</td><td style="padding:4px 8px;">${g.weight.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td><td style="padding:4px 8px;">${g.day}</td><td style="padding:4px 8px; color:var(--coral); font-weight:600;">${g.count}x</td><td style="padding:4px 8px;">${tag}</td></tr>`;
   });
   html += '</table>';
   el.innerHTML = html;
@@ -2535,7 +2545,8 @@ function detectColumns(headers) {
     material: findCol(['material', 'produto', 'mercadoria']),
     date: findCol(['data registro', 'mes/ano', 'data', 'date', 'entrada']),
     divApurada: findCol(['divergencia de peso apurada', 'peso apurado', 'dif peso']),
-    divDefinida: findCol(['divergencia de peso definida', 'limite de tolerancia', 'limite peso'])
+    divDefinida: findCol(['divergencia de peso definida', 'limite de tolerancia', 'limite peso']),
+    movimento: findCol(['movimento', 'n°doc', 'ndoc', 'n doc', 'documento'])
   };
 }
 
@@ -2606,8 +2617,14 @@ function buildPerfFlatEntries(rows) {
       }
     }
 
-    const entryId = sanitizeDocId([carrierName, placa, material, weight, monthKey, dateTs].join('|'));
-    flatEntries.push({ id: entryId, carrierName, cpf, placa, weight, material, isDiv, monthKey, dateTs });
+    const movimento = cols.movimento !== -1 ? String(row[cols.movimento] || '').trim() : '';
+
+    // Deduplicação: prioriza o número do Movimento (nunca se repete de verdade).
+    // Só cai no identificador composto (menos confiável) se a planilha não tiver essa coluna.
+    const entryId = movimento
+      ? sanitizeDocId('mov_' + movimento)
+      : sanitizeDocId([carrierName, placa, material, weight, monthKey, dateTs].join('|'));
+    flatEntries.push({ id: entryId, carrierName, cpf, placa, weight, material, isDiv, monthKey, dateTs, movimento });
   }
 
   return flatEntries;
