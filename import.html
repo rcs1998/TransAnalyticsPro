@@ -19,14 +19,23 @@
   .card h2 { font-size: 14px; margin: 0 0 6px; }
   .card p { font-size: 12px; color: var(--text-2); margin: 0 0 16px; }
   input[type=email], input[type=password] { width: 100%; background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; color: var(--text-1); font-size: 13px; margin-bottom: 10px; }
+  select { width: 100%; background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-1); padding: 8px 10px; font-size: 13px; margin-bottom: 8px; }
   .btn { background: var(--bg-3); border: 1px solid var(--border); color: var(--text-1); padding: 9px 16px; border-radius: var(--radius); font-size: 13px; cursor: pointer; }
   .btn-primary { background: var(--accent); color: #06140f; border: none; font-weight: 600; }
+  .btn-danger-outline { border-color: var(--coral); color: var(--coral); }
+  .btn-danger { background: var(--coral); border: none; color: #2b0a0a; font-weight: 700; }
   .dropzone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 22px; text-align: center; cursor: pointer; position: relative; margin-bottom: 10px; }
   .dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
   .status { font-size: 12px; color: var(--text-3); min-height: 16px; }
   .log { background: var(--bg-0); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; font-size: 11px; font-family: monospace; color: var(--text-2); max-height: 200px; overflow-y: auto; margin-top: 10px; white-space: pre-wrap; }
   .err { color: var(--coral); font-size: 12px; min-height: 16px; }
   #app { display: none; }
+  .danger-card { border-color: rgba(255,107,107,0.4); }
+  .danger-card h2 { color: var(--coral); }
+  .danger-section { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 14px; }
+  .danger-section:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+  .danger-section h3 { font-size: 13px; margin: 0 0 8px; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -70,6 +79,33 @@
       <div class="status" id="status-rebuild"></div>
       <div class="log" id="log-rebuild" style="display:none"></div>
     </div>
+
+    <div class="card danger-card" style="margin-top:20px;">
+      <h2>🗑️ Limpeza de Dados (ação destrutiva)</h2>
+      <p>Apagar registros <strong>não pode ser desfeito</strong>. Use quando precisar reprocessar um mês do zero (ex.: para eliminar duplicados antigos que não tinham o número de Movimento). Cada exclusão pede confirmação por escrito antes de rodar.</p>
+
+      <div class="danger-section">
+        <h3>📦 Performance Transportadoras</h3>
+        <select id="del-perf-month"><option value="">Carregando meses...</option></select>
+        <div class="btn-row">
+          <button class="btn btn-danger-outline" onclick="deleteMonth('performance_entries','performance_months', document.getElementById('del-perf-month').value, 'status-del-perf', 'log-del-perf')">Excluir Mês Selecionado</button>
+          <button class="btn btn-danger" onclick="deleteAllCollection('performance_entries','performance_months','status-del-perf','log-del-perf')">Excluir TODA a Base de Performance</button>
+        </div>
+        <div class="status" id="status-del-perf"></div>
+        <div class="log" id="log-del-perf" style="display:none"></div>
+      </div>
+
+      <div class="danger-section">
+        <h3>⏱️ Tempo na Usina</h3>
+        <select id="del-tempo-month"><option value="">Carregando meses...</option></select>
+        <div class="btn-row">
+          <button class="btn btn-danger-outline" onclick="deleteMonth('tempo_usina_entries','tempo_months', document.getElementById('del-tempo-month').value, 'status-del-tempo', 'log-del-tempo')">Excluir Mês Selecionado</button>
+          <button class="btn btn-danger" onclick="deleteAllCollection('tempo_usina_entries','tempo_months','status-del-tempo','log-del-tempo')">Excluir TODA a Base de Tempo na Usina</button>
+        </div>
+        <div class="status" id="status-del-tempo"></div>
+        <div class="log" id="log-del-tempo" style="display:none"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -98,6 +134,11 @@ appCheck.activate(
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// Escapa dados vindos de planilhas antes de inserir via innerHTML — previne XSS armazenado
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
 function loginUser() {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
@@ -110,10 +151,16 @@ function loginUser() {
 auth.onAuthStateChanged(user => {
   document.getElementById('login-card').style.display = user ? 'none' : 'block';
   document.getElementById('app').style.display = user ? 'block' : 'none';
+  if (user) loadMonthOptionsForDeletion();
 });
 
 /* ===== mesma lógica de parsing/dedupe do dashboard ===== */
 function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+
+function monthLabel(m) {
+  const parts = m.split('-');
+  return `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(parts[1])-1]}/${parts[0]}`;
+}
 
 function simpleHash(str) {
   let hash = 5381;
@@ -135,7 +182,8 @@ function detectColumns(headers) {
     material: findCol(['material', 'produto', 'mercadoria']),
     date: findCol(['data registro', 'mes/ano', 'data', 'date', 'entrada']),
     divApurada: findCol(['divergencia de peso apurada', 'peso apurado', 'dif peso']),
-    divDefinida: findCol(['divergencia de peso definida', 'limite de tolerancia', 'limite peso'])
+    divDefinida: findCol(['divergencia de peso definida', 'limite de tolerancia', 'limite peso']),
+    movimento: findCol(['movimento', 'n°doc', 'ndoc', 'n doc', 'documento'])
   };
 }
 function extractCPF(val) {
@@ -181,8 +229,13 @@ function buildPerfFlatEntries(rows) {
       if (!(date instanceof Date)) date = new Date(date);
       if (!isNaN(date)) { monthKey = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`; dateTs = date.getTime(); }
     }
-    const entryId = sanitizeDocId([carrierName, placa, material, weight, monthKey, dateTs].join('|'));
-    flatEntries.push({ id: entryId, carrierName, cpf, placa, weight, material, isDiv, monthKey, dateTs });
+    const movimento = cols.movimento !== -1 ? String(row[cols.movimento] || '').trim() : '';
+    // Deduplicação: prioriza o número do Movimento (nunca se repete de verdade).
+    // Só cai no identificador composto (menos confiável) se a planilha não tiver essa coluna.
+    const entryId = movimento
+      ? sanitizeDocId('mov_' + movimento)
+      : sanitizeDocId([carrierName, placa, material, weight, monthKey, dateTs].join('|'));
+    flatEntries.push({ id: entryId, carrierName, cpf, placa, weight, material, isDiv, monthKey, dateTs, movimento });
   }
   return flatEntries;
 }
@@ -284,8 +337,9 @@ async function saveEntriesFast(collectionName, entries, statusEl, logEl) {
   const seconds = ((Date.now() - startTime) / 1000).toFixed(1);
 
   // Atualiza a lista de meses disponíveis (usada pelo dashboard para os filtros)
+  let monthsInBatch = [];
   try {
-    const monthsInBatch = [...new Set(entries.map(e => e.monthKey).filter(m => m && m !== 'Sem Data'))];
+    monthsInBatch = [...new Set(entries.map(e => e.monthKey).filter(m => m && m !== 'Sem Data'))];
     if (monthsInBatch.length) {
       const metaDocId = collectionName === 'tempo_usina_entries' ? 'tempo_months' : 'performance_months';
       // Para tempo na usina: sempre usa data de ENTRADA (não saída — veículo pode sair no dia seguinte)
@@ -304,6 +358,14 @@ async function saveEntriesFast(collectionName, entries, statusEl, logEl) {
     }
   } catch (err) {
     logEl.innerText += `⚠️ Não foi possível atualizar a lista de meses: ${err.message}\n`;
+  }
+
+  // Atualiza o resumo mensal (usado pela Visão Mensal do dashboard) para os meses afetados
+  if (monthsInBatch.length) {
+    logEl.innerText += `Atualizando resumo mensal de ${monthsInBatch.length} mês(es)...\n`;
+    for (const mk of monthsInBatch) {
+      try { await computeAndSaveMonthlySummary(mk); } catch (err) { logEl.innerText += `⚠️ Resumo mensal falhou para ${mk}: ${err.message}\n`; }
+    }
   }
 
   logEl.innerText += `\n✅ Concluído em ${seconds}s — ${done} lotes ok, ${errors} com erro.\n`;
@@ -339,6 +401,7 @@ function handleImport(file, statusElId, logElId) {
       }
       if (perfFlat.length) await saveEntriesFast('performance_entries', perfFlat, statusEl, logEl);
       if (tempoFlat.length) await saveEntriesFast('tempo_usina_entries', tempoFlat, statusEl, logEl);
+      loadMonthOptionsForDeletion();
     } catch (err) {
       statusEl.innerText = '❌ Erro: ' + err.message;
     }
@@ -384,6 +447,190 @@ async function rebuildMonthsIndex() {
 
     logEl.innerText += `\n✅ Índice reconstruído com sucesso. Pode recarregar o dashboard normalmente agora.\n`;
     statusEl.innerText = '✅ Concluído.';
+    loadMonthOptionsForDeletion();
+  } catch (err) {
+    statusEl.innerText = '❌ Erro: ' + err.message;
+    logEl.innerText += `❌ ${err.message}\n`;
+  }
+}
+
+/* ==================== RESUMO MENSAL (mesma lógica do dashboard) ====================
+   Mantém a coleção "monthly_summary" (1 doc leve por mês) sincronizada após
+   qualquer upload ou exclusão, para a aba "Visão Mensal" do dashboard continuar correta. */
+async function computeAndSaveMonthlySummary(monthKey) {
+  const [perfSnap, tempoSnap] = await Promise.all([
+    db.collection('performance_entries').where('monthKey', '==', monthKey).get(),
+    db.collection('tempo_usina_entries').where('monthKey', '==', monthKey).get()
+  ]);
+
+  let volume = 0, trips = 0, div = 0;
+  const drivers = new Set(), vehicles = new Set();
+  const carrierVolume = new Map();
+  perfSnap.forEach(doc => {
+    const e = doc.data();
+    volume += e.weight || 0;
+    trips++;
+    if (e.isDiv) div++;
+    if (e.cpf && e.cpf.length >= 3) drivers.add(e.cpf);
+    if (e.placa && e.placa.length >= 3) vehicles.add(e.placa);
+    carrierVolume.set(e.carrierName, (carrierVolume.get(e.carrierName) || 0) + (e.weight || 0));
+  });
+  let topCarrier = null, topCarrierVolume = 0;
+  carrierVolume.forEach((v, name) => { if (v > topCarrierVolume) { topCarrierVolume = v; topCarrier = name; } });
+
+  let tempoSum = 0, tempoCount = 0, tempoCritico = 0;
+  const tempoVehicles = new Set();
+  tempoSnap.forEach(doc => {
+    const e = doc.data();
+    if (typeof e.tempoUsina === 'number') {
+      tempoSum += e.tempoUsina; tempoCount++;
+      if (e.tempoUsina >= 120) tempoCritico++;
+    }
+    if (e.placa) tempoVehicles.add(e.placa);
+  });
+
+  const summary = {
+    monthKey, volume, trips, div,
+    drivers: drivers.size, vehicles: vehicles.size,
+    topCarrier, topCarrierVolume,
+    tempoSum, tempoCount, tempoCritico, tempoVehicles: tempoVehicles.size,
+    updatedAt: Date.now()
+  };
+  await db.collection('monthly_summary').doc(monthKey).set(summary);
+  return summary;
+}
+
+/* ==================== LIMPEZA DE DADOS (ação destrutiva) ==================== */
+
+async function loadMonthOptionsForDeletion() {
+  try {
+    const [perfMeta, tempoMeta] = await Promise.all([
+      db.collection('meta').doc('performance_months').get(),
+      db.collection('meta').doc('tempo_months').get()
+    ]);
+    fillMonthSelect('del-perf-month', perfMeta.exists ? (perfMeta.data().months || []) : []);
+    fillMonthSelect('del-tempo-month', tempoMeta.exists ? (tempoMeta.data().months || []) : []);
+  } catch (err) {
+    console.error('Falha ao carregar meses para exclusão:', err);
+  }
+}
+
+function fillMonthSelect(selectId, months) {
+  const sel = document.getElementById(selectId);
+  const sorted = [...months].sort();
+  if (!sorted.length) { sel.innerHTML = '<option value="">Nenhum mês encontrado</option>'; return; }
+  sel.innerHTML = sorted.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(monthLabel(m))}</option>`).join('');
+}
+
+// Apaga todos os documentos de uma query, em lotes de até 450, sequencialmente,
+// registrando progresso. Retorna o total de documentos apagados.
+async function deleteQueryInBatches(query, logEl, labelPrefix) {
+  let totalDeleted = 0;
+  while (true) {
+    const snap = await query.limit(450).get();
+    if (snap.empty) break;
+    const batch = db.batch();
+    snap.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    totalDeleted += snap.size;
+    logEl.innerText += `${labelPrefix} ${totalDeleted} registros apagados até agora...\n`;
+    logEl.scrollTop = logEl.scrollHeight;
+    if (snap.size < 450) break; // último lote
+  }
+  return totalDeleted;
+}
+
+async function deleteMonth(collectionName, metaDocId, monthKey, statusElId, logElId) {
+  const statusEl = document.getElementById(statusElId);
+  const logEl = document.getElementById(logElId);
+  if (!monthKey) { alert('Selecione um mês antes de excluir.'); return; }
+
+  statusEl.innerText = '⏳ Contando registros...';
+  const countSnap = await db.collection(collectionName).where('monthKey', '==', monthKey).get();
+  const count = countSnap.size;
+
+  if (count === 0) { statusEl.innerText = 'Nenhum registro encontrado para esse mês.'; return; }
+
+  const label = monthLabel(monthKey);
+  const typed = prompt(
+    `Isso vai apagar PERMANENTEMENTE ${count} registro(s) de "${collectionName}" referentes a ${label}.\n\n` +
+    `Essa ação não pode ser desfeita.\n\n` +
+    `Para confirmar, digite EXATAMENTE: EXCLUIR ${label}`
+  );
+  if (typed !== `EXCLUIR ${label}`) { statusEl.innerText = '❌ Exclusão cancelada (texto de confirmação não confere).'; return; }
+
+  logEl.style.display = 'block';
+  logEl.innerText = `Apagando ${count} registro(s) de ${label}...\n`;
+  statusEl.innerText = '⏳ Apagando registros...';
+
+  try {
+    const query = db.collection(collectionName).where('monthKey', '==', monthKey);
+    const deleted = await deleteQueryInBatches(query, logEl, '📦');
+
+    // Remove o mês do índice (meta) já que não sobrou nenhum registro dele
+    await db.collection('meta').doc(metaDocId).set({
+      months: firebase.firestore.FieldValue.arrayRemove(monthKey)
+    }, { merge: true });
+
+    // Recalcula o resumo mensal (Visão Mensal) — reflete que esse lado (performance ou tempo) zerou
+    logEl.innerText += 'Atualizando resumo mensal...\n';
+    await computeAndSaveMonthlySummary(monthKey);
+
+    logEl.innerText += `\n✅ Concluído: ${deleted} registro(s) apagado(s) de ${label}.\n`;
+    statusEl.innerText = `✅ ${deleted} registro(s) apagado(s). Pode subir a planilha de ${label} novamente.`;
+    logEl.scrollTop = logEl.scrollHeight;
+    loadMonthOptionsForDeletion();
+  } catch (err) {
+    statusEl.innerText = '❌ Erro: ' + err.message;
+    logEl.innerText += `❌ ${err.message}\n`;
+  }
+}
+
+async function deleteAllCollection(collectionName, metaDocId, statusElId, logElId) {
+  const statusEl = document.getElementById(statusElId);
+  const logEl = document.getElementById(logElId);
+  const isPerf = collectionName === 'performance_entries';
+  const label = isPerf ? 'TODA a base de Performance Transportadoras' : 'TODA a base de Tempo na Usina';
+
+  statusEl.innerText = '⏳ Contando registros...';
+  const metaDoc = await db.collection('meta').doc(metaDocId).get();
+  const affectedMonths = metaDoc.exists ? (metaDoc.data().months || []) : [];
+
+  const countSnap = await db.collection(collectionName).get();
+  const count = countSnap.size;
+  if (count === 0) { statusEl.innerText = 'Coleção já está vazia.'; return; }
+
+  const confirmWord = isPerf ? 'EXCLUIR PERFORMANCE' : 'EXCLUIR TEMPO';
+  const typed = prompt(
+    `⚠️ ATENÇÃO: isso vai apagar PERMANENTEMENTE ${count} registro(s) de ${label} — de TODOS os meses.\n\n` +
+    `Essa ação não pode ser desfeita.\n\n` +
+    `Para confirmar, digite EXATAMENTE: ${confirmWord}`
+  );
+  if (typed !== confirmWord) { statusEl.innerText = '❌ Exclusão cancelada (texto de confirmação não confere).'; return; }
+
+  logEl.style.display = 'block';
+  logEl.innerText = `Apagando ${count} registro(s) de ${collectionName}...\n`;
+  statusEl.innerText = '⏳ Apagando registros (pode levar um tempo para bases grandes)...';
+
+  try {
+    const query = db.collection(collectionName);
+    const deleted = await deleteQueryInBatches(query, logEl, isPerf ? '📦' : '⏱️');
+
+    // Remove o índice de meses inteiro dessa base
+    await db.collection('meta').doc(metaDocId).delete();
+
+    // Recalcula o resumo mensal de todos os meses que existiam, já que um dos dois lados zerou
+    if (affectedMonths.length) {
+      logEl.innerText += `Atualizando resumo mensal de ${affectedMonths.length} mês(es)...\n`;
+      for (const mk of affectedMonths) {
+        try { await computeAndSaveMonthlySummary(mk); } catch (err) { logEl.innerText += `⚠️ Resumo mensal falhou para ${mk}: ${err.message}\n`; }
+      }
+    }
+
+    logEl.innerText += `\n✅ Concluído: ${deleted} registro(s) apagado(s). Base zerada.\n`;
+    statusEl.innerText = `✅ ${deleted} registro(s) apagado(s). Pode subir as planilhas novamente do zero.`;
+    logEl.scrollTop = logEl.scrollHeight;
+    loadMonthOptionsForDeletion();
   } catch (err) {
     statusEl.innerText = '❌ Erro: ' + err.message;
     logEl.innerText += `❌ ${err.message}\n`;
