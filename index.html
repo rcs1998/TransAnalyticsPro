@@ -2530,6 +2530,15 @@ document.getElementById('file-input-tempo').addEventListener('change', e => {
 
 function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
 
+// SheetJS (cellDates:true) devolve objetos Date cujos componentes (dia/mês/ano) foram
+// lidos como se fossem UTC. Sem essa correção, .getMonth()/.getDate() locais (usados
+// no resto do app) podem "vazar" a viagem para o dia/mês anterior em fusos negativos
+// como o do Brasil (UTC-3) quando a célula da planilha é só data, sem horário.
+function excelDateToLocalTs(date) {
+  if (!(date instanceof Date) || isNaN(date)) return null;
+  return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds()).getTime();
+}
+
 // Escapa dados vindos de planilhas antes de inserir via innerHTML — previne XSS armazenado
 function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -2609,11 +2618,12 @@ function buildPerfFlatEntries(rows) {
     let monthKey = 'Sem Data';
     let dateTs = null;
     if (cols.date !== -1) {
-      let date = row[cols.date];
-      if (!(date instanceof Date)) date = new Date(date);
+      let raw = row[cols.date];
+      let date = raw instanceof Date ? raw : new Date(raw);
       if (!isNaN(date)) {
-        monthKey = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
-        dateTs = date.getTime();
+        dateTs = raw instanceof Date ? excelDateToLocalTs(date) : date.getTime();
+        const d = new Date(dateTs);
+        monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
       }
     }
 
@@ -3033,7 +3043,7 @@ function parseTimeStrToMinutes(val) {
 
 function parseBRDateTime(val) {
   if (!val) return null;
-  if (val instanceof Date) return isNaN(val) ? null : val.getTime();
+  if (val instanceof Date) return isNaN(val) ? null : excelDateToLocalTs(val);
   const s = String(val).trim();
   const m = s.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
   if (m) {
