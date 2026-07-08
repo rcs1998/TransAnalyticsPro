@@ -105,6 +105,23 @@
         <div class="status" id="status-del-tempo"></div>
         <div class="log" id="log-del-tempo" style="display:none"></div>
       </div>
+
+      <div class="danger-section">
+        <h3>🧹 Limpeza em Lote (vários meses de uma vez)</h3>
+        <p style="margin:0 0 10px;">Marque os meses que quer apagar. Remove de Performance e de Tempo na Usina ao mesmo tempo (o que existir de cada um). Depois é só subir as planilhas originais desses meses de novo.</p>
+        <div class="btn-row" style="margin-bottom:8px;">
+          <button class="btn" style="font-size:11px; padding:5px 10px;" onclick="toggleAllBatchMonths(true)">Marcar todos</button>
+          <button class="btn" style="font-size:11px; padding:5px 10px;" onclick="toggleAllBatchMonths(false)">Desmarcar todos</button>
+        </div>
+        <div id="batch-month-list" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto; background:var(--bg-0); border:1px solid var(--border); border-radius:var(--radius); padding:10px; margin-bottom:10px; font-size:12px;">
+          Carregando meses...
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-danger" onclick="deleteSelectedMonthsBatch()">Excluir Meses Selecionados</button>
+        </div>
+        <div class="status" id="status-del-batch"></div>
+        <div class="log" id="log-del-batch" style="display:none"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -156,6 +173,15 @@ auth.onAuthStateChanged(user => {
 
 /* ===== mesma lógica de parsing/dedupe do dashboard ===== */
 function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+
+// SheetJS (cellDates:true) devolve objetos Date cujos componentes (dia/mês/ano) foram
+// lidos como se fossem UTC. Sem essa correção, .getMonth()/.getDate() locais (usados
+// no resto do app) podem "vazar" a viagem para o dia/mês anterior em fusos negativos
+// como o do Brasil (UTC-3) quando a célula da planilha é só data, sem horário.
+function excelDateToLocalTs(date) {
+  if (!(date instanceof Date) || isNaN(date)) return null;
+  return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds()).getTime();
+}
 
 function monthLabel(m) {
   const parts = m.split('-');
@@ -225,9 +251,13 @@ function buildPerfFlatEntries(rows) {
     }
     let monthKey = 'Sem Data', dateTs = null;
     if (cols.date !== -1) {
-      let date = row[cols.date];
-      if (!(date instanceof Date)) date = new Date(date);
-      if (!isNaN(date)) { monthKey = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`; dateTs = date.getTime(); }
+      let raw = row[cols.date];
+      let date = raw instanceof Date ? raw : new Date(raw);
+      if (!isNaN(date)) {
+        dateTs = raw instanceof Date ? excelDateToLocalTs(date) : date.getTime();
+        const d = new Date(dateTs);
+        monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      }
     }
     const movimento = cols.movimento !== -1 ? String(row[cols.movimento] || '').trim() : '';
     // Deduplicação: prioriza o número do Movimento (nunca se repete de verdade).
@@ -260,7 +290,7 @@ function parseTimeStrToMinutes(val) {
 }
 function parseBRDateTime(val) {
   if (!val) return null;
-  if (val instanceof Date) return isNaN(val) ? null : val.getTime();
+  if (val instanceof Date) return isNaN(val) ? null : excelDateToLocalTs(val);
   const s = String(val).trim();
   const m = s.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
   if (m) { const d = new Date(+m[3], +m[2]-1, +m[1], +m[4], +m[5]); return isNaN(d) ? null : d.getTime(); }
@@ -508,8 +538,11 @@ async function loadMonthOptionsForDeletion() {
       db.collection('meta').doc('performance_months').get(),
       db.collection('meta').doc('tempo_months').get()
     ]);
-    fillMonthSelect('del-perf-month', perfMeta.exists ? (perfMeta.data().months || []) : []);
-    fillMonthSelect('del-tempo-month', tempoMeta.exists ? (tempoMeta.data().months || []) : []);
+    const perfMonths = perfMeta.exists ? (perfMeta.data().months || []) : [];
+    const tempoMonths = tempoMeta.exists ? (tempoMeta.data().months || []) : [];
+    fillMonthSelect('del-perf-month', perfMonths);
+    fillMonthSelect('del-tempo-month', tempoMonths);
+    fillBatchMonthList(perfMonths, tempoMonths);
   } catch (err) {
     console.error('Falha ao carregar meses para exclusão:', err);
   }
@@ -520,6 +553,103 @@ function fillMonthSelect(selectId, months) {
   const sorted = [...months].sort();
   if (!sorted.length) { sel.innerHTML = '<option value="">Nenhum mês encontrado</option>'; return; }
   sel.innerHTML = sorted.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(monthLabel(m))}</option>`).join('');
+}
+
+function fillBatchMonthList(perfMonths, tempoMonths) {
+  const container = document.getElementById('batch-month-list');
+  const allMonths = [...new Set([...perfMonths, ...tempoMonths])].sort();
+  if (!allMonths.length) { container.innerHTML = 'Nenhum mês encontrado.'; return; }
+
+  const perfSet = new Set(perfMonths);
+  const tempoSet = new Set(tempoMonths);
+
+  container.innerHTML = allMonths.map(m => {
+    const tags = [];
+    if (perfSet.has(m)) tags.push('<span style="color:var(--accent);">📦 Performance</span>');
+    if (tempoSet.has(m)) tags.push('<span style="color:var(--text-2);">⏱️ Tempo</span>');
+    return `<label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+      <input type="checkbox" class="batch-month-checkbox" value="${escapeHtml(m)}" />
+      <span>${escapeHtml(monthLabel(m))}</span>
+      <span style="margin-left:auto; font-size:11px;">${tags.join(' · ')}</span>
+    </label>`;
+  }).join('');
+}
+
+function toggleAllBatchMonths(checked) {
+  document.querySelectorAll('.batch-month-checkbox').forEach(cb => cb.checked = checked);
+}
+
+async function deleteSelectedMonthsBatch() {
+  const statusEl = document.getElementById('status-del-batch');
+  const logEl = document.getElementById('log-del-batch');
+  const selected = [...document.querySelectorAll('.batch-month-checkbox:checked')].map(cb => cb.value);
+
+  if (!selected.length) { alert('Marque pelo menos um mês antes de excluir.'); return; }
+
+  statusEl.innerText = '⏳ Contando registros dos meses selecionados...';
+  const counts = {};
+  let totalCount = 0;
+  for (const mk of selected) {
+    const [perfSnap, tempoSnap] = await Promise.all([
+      db.collection('performance_entries').where('monthKey', '==', mk).get(),
+      db.collection('tempo_usina_entries').where('monthKey', '==', mk).get()
+    ]);
+    counts[mk] = { perf: perfSnap.size, tempo: tempoSnap.size };
+    totalCount += perfSnap.size + tempoSnap.size;
+  }
+
+  if (totalCount === 0) { statusEl.innerText = 'Nenhum registro encontrado nos meses selecionados.'; return; }
+
+  const monthLabels = selected.map(m => monthLabel(m)).join(', ');
+  const typed = prompt(
+    `⚠️ ATENÇÃO: isso vai apagar PERMANENTEMENTE ${totalCount} registro(s) no total, ` +
+    `de Performance E Tempo na Usina, referentes a ${selected.length} mês(es): ${monthLabels}.\n\n` +
+    `Detalhe por mês:\n` +
+    selected.map(mk => `- ${monthLabel(mk)}: ${counts[mk].perf} (performance) + ${counts[mk].tempo} (tempo)`).join('\n') +
+    `\n\nEssa ação não pode ser desfeita.\n\n` +
+    `Para confirmar, digite EXATAMENTE: EXCLUIR ${selected.length} MESES`
+  );
+  if (typed !== `EXCLUIR ${selected.length} MESES`) { statusEl.innerText = '❌ Exclusão cancelada (texto de confirmação não confere).'; return; }
+
+  logEl.style.display = 'block';
+  logEl.innerText = `Iniciando exclusão em lote de ${selected.length} mês(es)...\n\n`;
+  statusEl.innerText = '⏳ Apagando registros...';
+
+  let grandTotal = 0;
+  for (const mk of selected) {
+    const label = monthLabel(mk);
+    logEl.innerText += `── ${label} ──\n`;
+    logEl.scrollTop = logEl.scrollHeight;
+
+    if (counts[mk].perf > 0) {
+      const deleted = await deleteQueryInBatches(
+        db.collection('performance_entries').where('monthKey', '==', mk), logEl, '📦'
+      );
+      grandTotal += deleted;
+      await db.collection('meta').doc('performance_months').set({
+        months: firebase.firestore.FieldValue.arrayRemove(mk)
+      }, { merge: true });
+    }
+
+    if (counts[mk].tempo > 0) {
+      const deleted = await deleteQueryInBatches(
+        db.collection('tempo_usina_entries').where('monthKey', '==', mk), logEl, '⏱️'
+      );
+      grandTotal += deleted;
+      await db.collection('meta').doc('tempo_months').set({
+        months: firebase.firestore.FieldValue.arrayRemove(mk)
+      }, { merge: true });
+    }
+
+    try { await computeAndSaveMonthlySummary(mk); } catch (err) { logEl.innerText += `⚠️ Resumo mensal falhou para ${label}: ${err.message}\n`; }
+    logEl.innerText += `✓ ${label} concluído.\n\n`;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  logEl.innerText += `\n✅ Lote concluído: ${grandTotal} registro(s) apagado(s) em ${selected.length} mês(es).\n`;
+  statusEl.innerText = `✅ ${grandTotal} registro(s) apagado(s) em ${selected.length} mês(es). Pode subir as planilhas originais desses meses novamente.`;
+  logEl.scrollTop = logEl.scrollHeight;
+  loadMonthOptionsForDeletion();
 }
 
 // Apaga todos os documentos de uma query, em lotes de até 450, sequencialmente,
