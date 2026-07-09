@@ -552,6 +552,7 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
     <button class="page-tab-btn active" id="tab-btn-performance" onclick="switchPage('performance')">📦 Performance Transportadoras</button>
     <button class="page-tab-btn" id="tab-btn-tempo" onclick="switchPage('tempo')">⏱️ Tempo na Usina</button>
     <button class="page-tab-btn" id="tab-btn-mensal" onclick="switchPage('mensal')">📅 Visão Mensal</button>
+    <button class="page-tab-btn" id="tab-btn-pesos" onclick="switchPage('pesos')">⚖️ Peso: Líquido vs Fornecedor</button>
   </div>
   <div class="dash-main page-section active" id="page-performance">
     <button class="mobile-filter-toggle" style="display:none" onclick="toggleMobileFilters(this)">
@@ -1055,6 +1056,93 @@ tr:hover td { background: var(--bg-3); color: var(--text-1); }
             <tbody id="mensal-table-body"></tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-main page-section" id="page-pesos">
+    <p style="font-size:12px; color:var(--text-3); max-width:760px; margin-bottom:16px;">
+      Compara o <strong>Peso Líquido</strong> (valor oficial, apurado após as duas pesagens) com o <strong>Peso Fornecedor</strong> (valor declarado, usado como referência quando o Peso Líquido ainda não foi calculado — comum em documentos do tipo TK aguardando pesagem completa). Use esta página para auditar diretamente no sistema de origem os registros sem Peso Líquido.
+    </p>
+
+    <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));">
+      <div class="kpi-card" style="--kpi-color: var(--accent)">
+        <div class="kpi-label">Total Peso Líquido</div>
+        <div class="kpi-value" id="pesos-kpi-liquido">0 <small style="font-size:12px">t</small></div>
+        <div class="kpi-sub" id="pesos-kpi-liquido-sub"></div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: var(--blue)">
+        <div class="kpi-label">Total Peso Fornecedor (todos os registros)</div>
+        <div class="kpi-value" id="pesos-kpi-fornecedor-total">0 <small style="font-size:12px">t</small></div>
+        <div class="kpi-sub" id="pesos-kpi-fornecedor-total-sub"></div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: var(--coral)">
+        <div class="kpi-label">Diferença (Fornecedor − Líquido)</div>
+        <div class="kpi-value" id="pesos-kpi-diferenca">0 <small style="font-size:12px">t</small></div>
+        <div class="kpi-sub" id="pesos-kpi-diferenca-sub"></div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: var(--amber)">
+        <div class="kpi-label">Peso Fornecedor (só registros sem Líquido)</div>
+        <div class="kpi-value" id="pesos-kpi-fornecedor">0 <small style="font-size:12px">t</small></div>
+        <div class="kpi-sub" id="pesos-kpi-fornecedor-sub"></div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: var(--text-2)">
+        <div class="kpi-label">Registros Sem Peso Líquido</div>
+        <div class="kpi-value" id="pesos-kpi-count">0</div>
+        <div class="kpi-sub" id="pesos-kpi-count-sub"></div>
+      </div>
+      <div class="kpi-card" style="--kpi-color: var(--purple)">
+        <div class="kpi-label">Total Combinado (Líquido + Fornecedor Fallback)</div>
+        <div class="kpi-value" id="pesos-kpi-total">0 <small style="font-size:12px">t</small></div>
+        <div class="kpi-sub">se usarmos Fornecedor como estimativa</div>
+      </div>
+    </div>
+
+    <div class="table-card" style="margin-bottom:24px;">
+      <div class="table-header">
+        <h3 style="font-family:var(--font-head); font-size:14px">Resumo por Tipo de Documento</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tipo de Documento</th>
+              <th>Total de Registros</th>
+              <th>Sem Peso Líquido</th>
+              <th>Peso Líquido (t)</th>
+              <th>Peso Fornecedor — só das faltantes (t)</th>
+              <th>Peso Fornecedor — todos (t)</th>
+            </tr>
+          </thead>
+          <tbody id="pesos-tipodoc-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header">
+        <h3 style="font-family:var(--font-head); font-size:14px">Registros Sem Peso Líquido (usar Movimento para apurar no sistema)</h3>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <input type="text" id="pesos-search" placeholder="Pesquisar transportadora, placa ou movimento..." style="width:280px; background:var(--bg-3); color:var(--text-1); border:1px solid var(--border); border-radius:var(--radius); padding:6px 12px;" oninput="renderPesosTable()" />
+          <button class="btn" style="font-size:11px; padding:5px 10px;" onclick="exportPesosXLSX()">📥 Exportar XLSX</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Movimento</th>
+              <th>Data</th>
+              <th>Transportadora</th>
+              <th>Placa</th>
+              <th>Material</th>
+              <th>Tipo Doc</th>
+              <th>Peso Líquido</th>
+              <th>Peso Fornecedor</th>
+            </tr>
+          </thead>
+          <tbody id="pesos-table-body"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -1790,7 +1878,7 @@ async function ensureMonthLoadedPerf(monthKey) {
   entries.forEach(e => {
     if (!state.materials.includes(e.material)) state.materials.push(e.material);
     if (!state.carriers.has(e.carrierName)) state.carriers.set(e.carrierName, { name: e.carrierName, allEntries: [] });
-    state.carriers.get(e.carrierName).allEntries.push({ cpf: e.cpf, placa: e.placa, weight: e.weight, material: e.material, isDiv: e.isDiv, monthKey: e.monthKey, dateTs: e.dateTs });
+    state.carriers.get(e.carrierName).allEntries.push({ cpf: e.cpf, placa: e.placa, weight: e.weight, material: e.material, isDiv: e.isDiv, monthKey: e.monthKey, dateTs: e.dateTs, movimento: e.movimento, hasPesoLiquido: e.hasPesoLiquido !== false, pesoFornecedor: e.pesoFornecedor || 0, tipoDocumento: e.tipoDocumento || '' });
   });
   state.loadedMonths.add(monthKey);
   state.materials.sort();
@@ -2185,6 +2273,138 @@ function exportMensalXLSX() {
 }
 /* ==================== FIM VISÃO MENSAL ==================== */
 
+/* ==================== PESO: LÍQUIDO VS FORNECEDOR ==================== */
+let pesosDetailRows = [];
+
+function renderPesosPage() {
+  let sumLiquido = 0, sumFornecedorFaltante = 0, sumFornecedorTotal = 0, countFaltante = 0, countTotal = 0;
+  const tipoDocAgg = new Map(); // tipoDoc -> { total, faltante, liquido, fornecedor, fornecedorTotal }
+  const detail = [];
+
+  state.carriers.forEach(c => {
+    c.allEntries.forEach(e => {
+      countTotal++;
+      const td = e.tipoDocumento || '(não informado)';
+      if (!tipoDocAgg.has(td)) tipoDocAgg.set(td, { total: 0, faltante: 0, liquido: 0, fornecedor: 0, fornecedorTotal: 0 });
+      const agg = tipoDocAgg.get(td);
+      agg.total++;
+
+      // Peso Fornecedor somado em TODOS os registros (com ou sem Líquido), pra comparação direta
+      sumFornecedorTotal += e.pesoFornecedor || 0;
+      agg.fornecedorTotal += e.pesoFornecedor || 0;
+
+      if (e.hasPesoLiquido) {
+        sumLiquido += e.weight || 0;
+        agg.liquido += e.weight || 0;
+      } else {
+        countFaltante++;
+        sumFornecedorFaltante += e.pesoFornecedor || 0;
+        agg.faltante++;
+        agg.fornecedor += e.pesoFornecedor || 0;
+        detail.push({
+          movimento: e.movimento || '',
+          dateTs: e.dateTs,
+          carrierName: c.name,
+          placa: e.placa || '',
+          material: e.material || '',
+          tipoDocumento: e.tipoDocumento || '',
+          weight: e.weight || 0,
+          pesoFornecedor: e.pesoFornecedor || 0
+        });
+      }
+    });
+  });
+
+  document.getElementById('pesos-kpi-liquido').innerHTML = `${sumLiquido.toLocaleString('pt-BR',{maximumFractionDigits:1})} <small style="font-size:12px">t</small>`;
+  document.getElementById('pesos-kpi-liquido-sub').innerText = `${(countTotal - countFaltante).toLocaleString('pt-BR')} registros com Peso Líquido`;
+
+  document.getElementById('pesos-kpi-fornecedor-total').innerHTML = `${sumFornecedorTotal.toLocaleString('pt-BR',{maximumFractionDigits:1})} <small style="font-size:12px">t</small>`;
+  document.getElementById('pesos-kpi-fornecedor-total-sub').innerText = `${countTotal.toLocaleString('pt-BR')} registros no total`;
+
+  const diferenca = sumFornecedorTotal - sumLiquido;
+  document.getElementById('pesos-kpi-diferenca').innerHTML = `${diferenca >= 0 ? '+' : ''}${diferenca.toLocaleString('pt-BR',{maximumFractionDigits:1})} <small style="font-size:12px">t</small>`;
+  document.getElementById('pesos-kpi-diferenca-sub').innerText = sumLiquido > 0 ? `${(diferenca/sumLiquido*100).toFixed(1)}% em relação ao Líquido` : '';
+
+  document.getElementById('pesos-kpi-fornecedor').innerHTML = `${sumFornecedorFaltante.toLocaleString('pt-BR',{maximumFractionDigits:1})} <small style="font-size:12px">t</small>`;
+  document.getElementById('pesos-kpi-fornecedor-sub').innerText = `referência declarada, não oficial`;
+
+  document.getElementById('pesos-kpi-count').innerText = countFaltante.toLocaleString('pt-BR');
+  document.getElementById('pesos-kpi-count-sub').innerText = countTotal > 0 ? `${(countFaltante/countTotal*100).toFixed(1)}% do total carregado` : '';
+
+  document.getElementById('pesos-kpi-total').innerHTML = `${(sumLiquido + sumFornecedorFaltante).toLocaleString('pt-BR',{maximumFractionDigits:1})} <small style="font-size:12px">t</small>`;
+
+  const tipoDocBody = document.getElementById('pesos-tipodoc-body');
+  tipoDocBody.innerHTML = '';
+  [...tipoDocAgg.entries()].sort((a,b) => b[1].total - a[1].total).forEach(([td, agg]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(td)}</td><td>${agg.total.toLocaleString('pt-BR')}</td>` +
+      `<td style="color:${agg.faltante>0?'var(--coral)':'inherit'}">${agg.faltante.toLocaleString('pt-BR')}</td>` +
+      `<td>${agg.liquido.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td>` +
+      `<td>${agg.fornecedor.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td>` +
+      `<td>${agg.fornecedorTotal.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td>`;
+    tipoDocBody.appendChild(tr);
+  });
+
+  pesosDetailRows = detail;
+  renderPesosTable();
+}
+
+function renderPesosTable() {
+  const search = (document.getElementById('pesos-search')?.value || '').toLowerCase();
+  const tbody = document.getElementById('pesos-table-body');
+  tbody.innerHTML = '';
+
+  let rows = pesosDetailRows;
+  if (search) {
+    rows = rows.filter(r =>
+      r.carrierName.toLowerCase().includes(search) ||
+      r.placa.toLowerCase().includes(search) ||
+      String(r.movimento).toLowerCase().includes(search)
+    );
+  }
+  rows = [...rows].sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0)).slice(0, 500);
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-3)">Nenhum registro sem Peso Líquido encontrado.</td></tr>';
+    return;
+  }
+
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    const dateStr = r.dateTs ? new Date(r.dateTs).toLocaleDateString('pt-BR') : '—';
+    tr.innerHTML = `<td>${escapeHtml(r.movimento)}</td><td>${dateStr}</td><td>${escapeHtml(r.carrierName)}</td>` +
+      `<td>${escapeHtml(r.placa)}</td><td>${escapeHtml(r.material)}</td><td>${escapeHtml(r.tipoDocumento)}</td>` +
+      `<td style="color:var(--coral)">${r.weight.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td>` +
+      `<td style="color:var(--amber)">${r.pesoFornecedor.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  if (pesosDetailRows.length > 500) {
+    const note = document.createElement('tr');
+    note.innerHTML = `<td colspan="8" style="text-align:center; color:var(--text-3); font-size:11px;">Mostrando 500 de ${pesosDetailRows.length} registros. Exporte em XLSX para ver todos.</td>`;
+    tbody.appendChild(note);
+  }
+}
+
+function exportPesosXLSX() {
+  if (!pesosDetailRows.length) return alert("Nenhum registro sem Peso Líquido para exportar.");
+  const dataToExport = pesosDetailRows.map(r => ({
+    "Movimento": r.movimento,
+    "Data": r.dateTs ? new Date(r.dateTs).toLocaleDateString('pt-BR') : '',
+    "Transportadora": r.carrierName,
+    "Placa": r.placa,
+    "Material": r.material,
+    "Tipo de Documento": r.tipoDocumento,
+    "Peso Líquido": r.weight,
+    "Peso Fornecedor": r.pesoFornecedor
+  }));
+  const ws = XLSX.utils.json_to_sheet(dataToExport);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Sem Peso Liquido");
+  XLSX.writeFile(wb, "Auditoria_Peso_Liquido_x_Fornecedor.xlsx");
+}
+/* ==================== FIM PESO: LÍQUIDO VS FORNECEDOR ==================== */
+
 function fmtDate(ts) {
   if (!ts) return '—';
   const d = new Date(ts);
@@ -2258,6 +2478,7 @@ function switchPage(name) {
   document.querySelectorAll('.page-tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-btn-' + name).classList.add('active');
   if (name === 'mensal' && !stateMensal.loaded) loadMonthlySummaries();
+  if (name === 'pesos') renderPesosPage();
   // força redimensionamento dos gráficos da página que ficou visível
   setTimeout(() => resizeAllCharts(), 50);
 }
@@ -2577,6 +2798,8 @@ function detectColumns(headers) {
     driver: findCol(['motorista', 'cpf', 'driver']),
     vehicle: findCol(['placa', 'veiculo', 'frota', 'identificador']),
     weight: findCol(['peso liquido', 'peso liq', 'tonelagem']),
+    pesoFornecedor: findCol(['peso fornecedor']),
+    tipoDocumento: findCol(['tipo de documento', 'tipodoc']),
     material: findCol(['material', 'produto', 'mercadoria']),
     date: findCol(['data registro', 'mes/ano', 'data', 'date', 'entrada']),
     divApurada: findCol(['divergencia de peso apurada', 'peso apurado', 'dif peso']),
@@ -2624,8 +2847,13 @@ function buildPerfFlatEntries(rows) {
     const placa = cols.vehicle !== -1 ? String(row[cols.vehicle] || '').trim().toUpperCase() : '';
     
     let weight = cols.weight !== -1 ? (parseFloat(row[cols.weight]) || 0) : 0;
-    weight = Math.abs(weight); 
-    
+    weight = Math.abs(weight);
+    // Marca se a célula de Peso Liquido estava realmente preenchida (não apenas "0 por padrão"),
+    // pra diferenciar "viagem com peso zero de verdade" de "peso não veio na planilha".
+    const hasPesoLiquido = cols.weight !== -1 && row[cols.weight] !== null && row[cols.weight] !== undefined && String(row[cols.weight]).trim() !== '';
+    const pesoFornecedor = cols.pesoFornecedor !== -1 ? Math.abs(parseFloat(row[cols.pesoFornecedor]) || 0) : 0;
+    const tipoDocumento = cols.tipoDocumento !== -1 ? String(row[cols.tipoDocumento] || '').trim().toUpperCase() : '';
+
     let material = 'DIVERSOS';
     if (cols.material !== -1) {
         const matRaw = String(row[cols.material] || 'DIVERSOS');
@@ -2663,7 +2891,7 @@ function buildPerfFlatEntries(rows) {
     const entryId = movimento
       ? sanitizeDocId('mov_' + movimento)
       : sanitizeDocId([carrierName, placa, material, weight, monthKey, dateTs].join('|'));
-    flatEntries.push({ id: entryId, carrierName, cpf, placa, weight, material, isDiv, monthKey, dateTs, movimento });
+    flatEntries.push({ id: entryId, carrierName, cpf, placa, weight, material, isDiv, monthKey, dateTs, movimento, hasPesoLiquido, pesoFornecedor, tipoDocumento });
   }
 
   flatEntries.stats = { totalDataRows, valid: flatEntries.length, skippedEmptyRow, skippedBlankCarrier };

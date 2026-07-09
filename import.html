@@ -205,6 +205,8 @@ function detectColumns(headers) {
     driver: findCol(['motorista', 'cpf', 'driver']),
     vehicle: findCol(['placa', 'veiculo', 'frota', 'identificador']),
     weight: findCol(['peso liquido', 'peso liq', 'tonelagem']),
+    pesoFornecedor: findCol(['peso fornecedor']),
+    tipoDocumento: findCol(['tipo de documento', 'tipodoc']),
     material: findCol(['material', 'produto', 'mercadoria']),
     date: findCol(['data registro', 'mes/ano', 'data', 'date', 'entrada']),
     divApurada: findCol(['divergencia de peso apurada', 'peso apurado', 'dif peso']),
@@ -244,6 +246,9 @@ function buildPerfFlatEntries(rows) {
     const placa = cols.vehicle !== -1 ? String(row[cols.vehicle] || '').trim().toUpperCase() : '';
     let weight = cols.weight !== -1 ? (parseFloat(row[cols.weight]) || 0) : 0;
     weight = Math.abs(weight);
+    const hasPesoLiquido = cols.weight !== -1 && row[cols.weight] !== null && row[cols.weight] !== undefined && String(row[cols.weight]).trim() !== '';
+    const pesoFornecedor = cols.pesoFornecedor !== -1 ? Math.abs(parseFloat(row[cols.pesoFornecedor]) || 0) : 0;
+    const tipoDocumento = cols.tipoDocumento !== -1 ? String(row[cols.tipoDocumento] || '').trim().toUpperCase() : '';
     let material = 'DIVERSOS';
     if (cols.material !== -1) material = String(row[cols.material] || 'DIVERSOS').split('[')[0].trim().toUpperCase();
     let isDiv = false;
@@ -268,7 +273,7 @@ function buildPerfFlatEntries(rows) {
     const entryId = movimento
       ? sanitizeDocId('mov_' + movimento)
       : sanitizeDocId([carrierName, placa, material, weight, monthKey, dateTs].join('|'));
-    flatEntries.push({ id: entryId, carrierName, cpf, placa, weight, material, isDiv, monthKey, dateTs, movimento });
+    flatEntries.push({ id: entryId, carrierName, cpf, placa, weight, material, isDiv, monthKey, dateTs, movimento, hasPesoLiquido, pesoFornecedor, tipoDocumento });
   }
   flatEntries.stats = { totalDataRows, valid: flatEntries.length, skippedEmptyRow, skippedBlankCarrier };
   return flatEntries;
