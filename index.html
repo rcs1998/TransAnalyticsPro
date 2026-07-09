@@ -1968,49 +1968,46 @@ async function diagnoseDuplicates() {
     document.getElementById('loading-msg').innerText = `Diagnosticando ${monthLabel(mk)} (${i+1}/${monthsToCheck.length})...`;
     const snap = await db.collection('performance_entries').where('monthKey', '==', mk).get();
 
-    const groups = new Map(); // chave -> { count, weight, entries: [] }
-    let totalVolume = 0, totalRecords = 0;
-    let hasMovimento = false;
+    // Agrupa SEMPRE por transportadora+placa+material+peso+dia — mesmo quando há
+    // Movimento — porque a mesma viagem pode ter sido exportada/subida mais de uma vez
+    // com números de Movimento diferentes (o Movimento é único por linha, mas não
+    // necessariamente estável entre exportações diferentes do sistema de origem).
+    const groups = new Map();
+    let totalVolume = 0, totalRecords = 0, recordsWithMovimento = 0;
     snap.forEach(doc => {
       const e = doc.data();
       totalRecords++;
       totalVolume += e.weight || 0;
-      let key, exact;
-      if (e.movimento) {
-        // Chave exata: número de Movimento nunca se repete de verdade.
-        // Como já é a chave do documento (mov_...), isso só detecta duplicata
-        // se por algum motivo dois documentos diferentes guardaram o mesmo movimento.
-        key = 'mov:' + e.movimento;
-        exact = true;
-        hasMovimento = true;
-      } else {
-        // Sem Movimento na planilha original: estimativa por transportadora+placa+material+peso+dia.
-        // Pode gerar falsos positivos (duas viagens legítimas iguais no mesmo dia).
-        const day = e.dateTs ? new Date(e.dateTs).toISOString().slice(0, 10) : 'sem-data';
-        key = [e.carrierName, e.placa, e.material, (e.weight || 0).toFixed(2), day].join('|');
-        exact = false;
-      }
-      if (!groups.has(key)) groups.set(key, { count: 0, weight: e.weight || 0, carrierName: e.carrierName, placa: e.placa, material: e.material, day: e.dateTs ? new Date(e.dateTs).toISOString().slice(0,10) : 'sem-data', exact });
-      groups.get(key).count++;
+      if (e.movimento) recordsWithMovimento++;
+      const day = e.dateTs ? new Date(e.dateTs).toISOString().slice(0, 10) : 'sem-data';
+      const key = [e.carrierName, e.placa, e.material, (e.weight || 0).toFixed(2), day].join('|');
+      if (!groups.has(key)) groups.set(key, { count: 0, weight: e.weight || 0, carrierName: e.carrierName, placa: e.placa, material: e.material, day, movimentos: new Set() });
+      const g = groups.get(key);
+      g.count++;
+      if (e.movimento) g.movimentos.add(e.movimento);
     });
 
-    let suspectRecords = 0, suspectVolume = 0;
+    let suspectRecords = 0, suspectVolume = 0, confirmedRecords = 0;
     const suspectGroups = [];
     groups.forEach(g => {
       if (g.count > 1) {
-        suspectRecords += (g.count - 1); // conta os "extras" além do primeiro
+        suspectRecords += (g.count - 1);
         suspectVolume += g.weight * (g.count - 1);
+        // 2+ números de Movimento distintos no mesmo grupo = praticamente certeza de
+        // duplicata real (mesma viagem, documentos diferentes). Isso é o que passou em junho.
+        g.confirmed = g.movimentos.size >= 2;
+        if (g.confirmed) confirmedRecords += (g.count - 1);
         suspectGroups.push(g);
       }
     });
-    suspectGroups.sort((a, b) => (b.exact - a.exact) || (b.count - a.count));
+    suspectGroups.sort((a, b) => (b.confirmed - a.confirmed) || (b.count - a.count));
 
     results.push({
-      monthKey: mk, totalRecords, totalVolume,
-      suspectRecords, suspectVolume, hasMovimento,
+      monthKey: mk, totalRecords, totalVolume, recordsWithMovimento,
+      suspectRecords, suspectVolume, confirmedRecords,
       pct: totalVolume > 0 ? (suspectVolume / totalVolume * 100) : 0
     });
-    detailsByMonth[mk] = suspectGroups.slice(0, 15);
+    detailsByMonth[mk] = suspectGroups.slice(0, 20);
   }
 
   document.getElementById('loading-screen').classList.remove('show');
@@ -2028,10 +2025,11 @@ function renderDuplicateDiagnosis(results, detailsByMonth) {
     const tr = document.createElement('tr');
     tr.style.cursor = r.suspectRecords > 0 ? 'pointer' : 'default';
     if (r.suspectRecords > 0) tr.title = 'Clique para ver os grupos suspeitos deste mês';
-    const confiabilidade = r.hasMovimento
-      ? '<span style="color:var(--green); font-size:10px;">✓ confirmado (via Movimento)</span>'
-      : '<span style="color:var(--amber); font-size:10px;">⚠ estimativa (sem Movimento na planilha)</span>';
-    tr.innerHTML = `<td>${escapeHtml(monthLabel(r.monthKey))}<br>${confiabilidade}</td>` +
+    const movInfo = `<span style="color:var(--text-3); font-size:10px;">${r.recordsWithMovimento}/${r.totalRecords} com Movimento</span>`;
+    let flag = '';
+    if (r.confirmedRecords > 0) flag = `<br><span style="color:var(--coral); font-size:10px;">✗ ${r.confirmedRecords} confirmado(s): mesma viagem, Movimentos diferentes</span>`;
+    else if (r.suspectRecords > 0) flag = '<br><span style="color:var(--amber); font-size:10px;">⚠ possível — sem Movimento p/ confirmar</span>';
+    tr.innerHTML = `<td>${escapeHtml(monthLabel(r.monthKey))}<br>${movInfo}${flag}</td>` +
       `<td>${r.totalRecords.toLocaleString('pt-BR')}</td>` +
       `<td style="color:${r.suspectRecords>0?'var(--coral)':'inherit'}">${r.suspectRecords.toLocaleString('pt-BR')}</td>` +
       `<td style="color:${r.suspectRecords>0?'var(--coral)':'inherit'}">${r.suspectVolume.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td>` +
@@ -2042,10 +2040,13 @@ function renderDuplicateDiagnosis(results, detailsByMonth) {
     tbody.appendChild(tr);
   });
 
-  const worst = results.find(r => r.suspectRecords > 0);
+  const worst = results.find(r => r.confirmedRecords > 0) || results.find(r => r.suspectRecords > 0);
   if (worst) {
     showDuplicateDetail(worst.monthKey, detailsByMonth[worst.monthKey]);
-    showToast(`⚠️ Encontrados possíveis duplicados em ${results.filter(r=>r.suspectRecords>0).length} mês(es).`, 5000);
+    const confirmedMonths = results.filter(r => r.confirmedRecords > 0).length;
+    showToast(confirmedMonths > 0
+      ? `🚨 Duplicatas confirmadas em ${confirmedMonths} mês(es) — mesma viagem com Movimentos diferentes.`
+      : `⚠️ Possíveis duplicados em ${results.filter(r=>r.suspectRecords>0).length} mês(es), sem confirmação por Movimento.`, 6000);
   } else {
     document.getElementById('dup-detail').innerHTML = '<span style="color:var(--green)">Nenhum grupo duplicado encontrado em nenhum mês verificado.</span>';
     showToast('✅ Nenhuma duplicata encontrada.');
@@ -2055,17 +2056,18 @@ function renderDuplicateDiagnosis(results, detailsByMonth) {
 function showDuplicateDetail(monthKey, groups) {
   const el = document.getElementById('dup-detail');
   if (!groups || !groups.length) { el.innerHTML = `<strong>${escapeHtml(monthLabel(monthKey))}</strong>: nenhum grupo suspeito.`; return; }
-  const anyExact = groups.some(g => g.exact);
-  const anyEstimate = groups.some(g => !g.exact);
+  const anyConfirmed = groups.some(g => g.confirmed);
+  const anyUnconfirmed = groups.some(g => !g.confirmed);
   let warn = '';
-  if (anyEstimate) warn = '<p style="color:var(--amber); margin:6px 0;">⚠ Esta planilha não tem coluna de Movimento identificada — os grupos abaixo são uma <strong>estimativa</strong> por transportadora+placa+material+peso+dia, e podem incluir viagens legítimas que só coincidem nesses campos. Confira manualmente antes de excluir qualquer registro.</p>';
-  if (anyExact) warn += '<p style="color:var(--green); margin:6px 0;">✓ Grupos marcados como confirmados usam o número de Movimento (identificador único) — duplicata real.</p>';
+  if (anyConfirmed) warn += '<p style="color:var(--coral); margin:6px 0;">✗ <strong>Confirmado</strong>: mesma transportadora+placa+material+peso+dia aparecendo sob 2 ou mais números de Movimento diferentes — praticamente certeza de que é a mesma viagem exportada/subida mais de uma vez. Seguro excluir os excedentes.</p>';
+  if (anyUnconfirmed) warn += '<p style="color:var(--amber); margin:6px 0;">⚠ <strong>Não confirmado</strong>: coincidência de transportadora+placa+material+peso+dia, mas sem Movimento suficiente para provar. Pode ser duplicata real ou duas viagens legítimas iguais no mesmo dia — confira manualmente antes de excluir.</p>';
   let html = `<strong>${escapeHtml(monthLabel(monthKey))}</strong> — top grupos suspeitos:<br>${warn}<br>`;
   html += '<table style="width:100%; font-size:11px; border-collapse:collapse;">';
-  html += '<tr style="color:var(--text-3); text-align:left;"><th style="padding:4px 8px;">Transportadora</th><th style="padding:4px 8px;">Placa</th><th style="padding:4px 8px;">Material</th><th style="padding:4px 8px;">Peso</th><th style="padding:4px 8px;">Dia</th><th style="padding:4px 8px;">Ocorrências</th><th style="padding:4px 8px;">Confiabilidade</th></tr>';
+  html += '<tr style="color:var(--text-3); text-align:left;"><th style="padding:4px 8px;">Transportadora</th><th style="padding:4px 8px;">Placa</th><th style="padding:4px 8px;">Material</th><th style="padding:4px 8px;">Peso</th><th style="padding:4px 8px;">Dia</th><th style="padding:4px 8px;">Ocorrências</th><th style="padding:4px 8px;">Movimentos Envolvidos</th><th style="padding:4px 8px;">Status</th></tr>';
   groups.forEach(g => {
-    const tag = g.exact ? '<span style="color:var(--green);">✓ confirmado</span>' : '<span style="color:var(--amber);">⚠ estimativa</span>';
-    html += `<tr style="border-top:1px solid var(--border);"><td style="padding:4px 8px;">${escapeHtml(g.carrierName)}</td><td style="padding:4px 8px;">${escapeHtml(g.placa)}</td><td style="padding:4px 8px;">${escapeHtml(g.material)}</td><td style="padding:4px 8px;">${g.weight.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td><td style="padding:4px 8px;">${g.day}</td><td style="padding:4px 8px; color:var(--coral); font-weight:600;">${g.count}x</td><td style="padding:4px 8px;">${tag}</td></tr>`;
+    const tag = g.confirmed ? '<span style="color:var(--coral); font-weight:600;">✗ confirmado</span>' : '<span style="color:var(--amber);">⚠ não confirmado</span>';
+    const movList = g.movimentos && g.movimentos.size ? [...g.movimentos].map(m => escapeHtml(m)).join(', ') : '<span style="color:var(--text-3)">nenhum</span>';
+    html += `<tr style="border-top:1px solid var(--border);"><td style="padding:4px 8px;">${escapeHtml(g.carrierName)}</td><td style="padding:4px 8px;">${escapeHtml(g.placa)}</td><td style="padding:4px 8px;">${escapeHtml(g.material)}</td><td style="padding:4px 8px;">${g.weight.toLocaleString('pt-BR',{maximumFractionDigits:1})}</td><td style="padding:4px 8px;">${g.day}</td><td style="padding:4px 8px; color:var(--coral); font-weight:600;">${g.count}x</td><td style="padding:4px 8px; font-family:monospace; font-size:10px;">${movList}</td><td style="padding:4px 8px;">${tag}</td></tr>`;
   });
   html += '</table>';
   el.innerHTML = html;
