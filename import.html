@@ -233,9 +233,12 @@ function buildPerfFlatEntries(rows) {
   const cols = detectColumns(headers);
   if (cols.carrier === -1) return [];
   const flatEntries = [];
+  let skippedEmptyRow = 0, skippedBlankCarrier = 0;
+  const totalDataRows = rows.length - 1;
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || row.length === 0 || !row[cols.carrier]) continue;
+    if (!row || row.length === 0) { skippedEmptyRow++; continue; }
+    if (!row[cols.carrier]) { skippedBlankCarrier++; continue; }
     const carrierName = String(row[cols.carrier]).split('[')[0].trim();
     const cpf = cols.driver !== -1 ? extractCPF(row[cols.driver]) : '';
     const placa = cols.vehicle !== -1 ? String(row[cols.vehicle] || '').trim().toUpperCase() : '';
@@ -267,6 +270,7 @@ function buildPerfFlatEntries(rows) {
       : sanitizeDocId([carrierName, placa, material, weight, monthKey, dateTs].join('|'));
     flatEntries.push({ id: entryId, carrierName, cpf, placa, weight, material, isDiv, monthKey, dateTs, movimento });
   }
+  flatEntries.stats = { totalDataRows, valid: flatEntries.length, skippedEmptyRow, skippedBlankCarrier };
   return flatEntries;
 }
 
@@ -302,9 +306,12 @@ function buildTempoFlatEntries(rows) {
   const cols = detectColumnsTempo(headers);
   if (cols.placa === -1 || (cols.tempoUsina === -1 && cols.tempoEntrePesos === -1)) return [];
   const entries = [];
+  let skippedEmptyRow = 0, skippedBlankPlaca = 0, skippedNoTempoUsina = 0;
+  const totalDataRows = rows.length - 1;
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || row.length === 0 || !row[cols.placa]) continue;
+    if (!row || row.length === 0) { skippedEmptyRow++; continue; }
+    if (!row[cols.placa]) { skippedBlankPlaca++; continue; }
     const placa = String(row[cols.placa] || '').trim().toUpperCase();
     let material = 'DIVERSOS';
     if (cols.material !== -1) material = String(row[cols.material] || 'DIVERSOS').split('[')[0].trim().toUpperCase();
@@ -315,7 +322,7 @@ function buildTempoFlatEntries(rows) {
     const saidaTs = cols.saida !== -1 ? parseBRDateTime(row[cols.saida]) : null;
     const tempoUsina = cols.tempoUsina !== -1 ? parseTimeStrToMinutes(row[cols.tempoUsina]) : null;
     const tempoEntrePesos = cols.tempoEntrePesos !== -1 ? parseTimeStrToMinutes(row[cols.tempoEntrePesos]) : null;
-    if (tempoUsina === null) continue;
+    if (tempoUsina === null) { skippedNoTempoUsina++; continue; }
     let monthKey = 'Sem Data';
     const dateTs = entradaTs;
     if (dateTs !== null) { const d = new Date(dateTs); monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
@@ -325,6 +332,7 @@ function buildTempoFlatEntries(rows) {
     else entryId = sanitizeDocId([placa, material, entradaTs, tempoUsina].join('|'));
     entries.push({ id: entryId, placa, material, tipoDoc, entradaTs, saidaTs, tempoUsina, tempoEntrePesos, monthKey, dateTs });
   }
+  entries.stats = { totalDataRows, valid: entries.length, skippedEmptyRow, skippedBlankPlaca, skippedNoTempoUsina };
   return entries;
 }
 
@@ -338,7 +346,7 @@ async function saveEntriesFast(collectionName, entries, statusEl, logEl) {
   for (let i = 0; i < entries.length; i += chunkSize) chunks.push(entries.slice(i, i + chunkSize));
 
   logEl.style.display = 'block';
-  logEl.innerText = `Iniciando importação de ${entries.length} registros em ${chunks.length} lotes...\n`;
+  logEl.innerText += `Iniciando importação de ${entries.length} registros em ${chunks.length} lotes...\n`;
 
   let done = 0;
   let errors = 0;
@@ -429,6 +437,26 @@ function handleImport(file, statusElId, logElId) {
         statusEl.innerText = '❌ Não identifiquei colunas conhecidas nessa planilha.';
         return;
       }
+
+      // Relatório de auditoria: mostra se alguma linha da planilha foi ignorada e por quê.
+      logEl.style.display = 'block';
+      logEl.innerText = `📋 Auditoria do arquivo "${file.name}":\n`;
+      if (perfFlat.stats) {
+        const s = perfFlat.stats;
+        logEl.innerText += `📦 Performance: ${s.totalDataRows} linha(s) de dados no arquivo → ${s.valid} processada(s)\n`;
+        if (s.skippedBlankCarrier) logEl.innerText += `   ⚠️ ${s.skippedBlankCarrier} linha(s) IGNORADA(S) por falta de Transportadora preenchida (confira se não é célula mesclada na planilha original)\n`;
+        if (s.skippedEmptyRow) logEl.innerText += `   ⚠️ ${s.skippedEmptyRow} linha(s) completamente vazia(s)\n`;
+      }
+      if (tempoFlat.stats) {
+        const s = tempoFlat.stats;
+        logEl.innerText += `⏱️ Tempo na Usina: ${s.totalDataRows} linha(s) de dados no arquivo → ${s.valid} processada(s)\n`;
+        if (s.skippedBlankPlaca) logEl.innerText += `   ⚠️ ${s.skippedBlankPlaca} linha(s) IGNORADA(S) por falta de Placa preenchida\n`;
+        if (s.skippedNoTempoUsina) logEl.innerText += `   ⚠️ ${s.skippedNoTempoUsina} linha(s) IGNORADA(S) por não ter Tempo na Usina válido\n`;
+        if (s.skippedEmptyRow) logEl.innerText += `   ⚠️ ${s.skippedEmptyRow} linha(s) completamente vazia(s)\n`;
+      }
+      logEl.innerText += '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+
       if (perfFlat.length) await saveEntriesFast('performance_entries', perfFlat, statusEl, logEl);
       if (tempoFlat.length) await saveEntriesFast('tempo_usina_entries', tempoFlat, statusEl, logEl);
       loadMonthOptionsForDeletion();
