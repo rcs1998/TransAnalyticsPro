@@ -475,6 +475,54 @@ async function rebuildMonthsIndex() {
     await db.collection('meta').doc('performance_months').set({ months: Array.from(perfMonths), lastUpdated: Date.now(), lastDate: perfDates.length ? Math.max(...perfDates) : null });
     await db.collection('meta').doc('tempo_months').set({ months: Array.from(tempoMonths), lastUpdated: Date.now(), lastDate: tempoDates.length ? Math.max(...tempoDates) : null });
 
+    // Recalcula o resumo mensal (Visão Mensal) de TODOS os meses, aproveitando os dados
+    // que já foram lidos acima — evita reconsultar tudo de novo mês a mês.
+    statusEl.innerText = '⏳ Recalculando resumos mensais...';
+    const allMonths = new Set([...perfMonths, ...tempoMonths]);
+    const perfAgg = {}; // monthKey -> { volume, trips, div, drivers:Set, vehicles:Set, carrierVolume:Map }
+    perfSnap.forEach(doc => {
+      const e = doc.data();
+      const mk = e.monthKey;
+      if (!mk || mk === 'Sem Data') return;
+      if (!perfAgg[mk]) perfAgg[mk] = { volume: 0, trips: 0, div: 0, drivers: new Set(), vehicles: new Set(), carrierVolume: new Map() };
+      const a = perfAgg[mk];
+      a.volume += e.weight || 0;
+      a.trips++;
+      if (e.isDiv) a.div++;
+      if (e.cpf && e.cpf.length >= 3) a.drivers.add(e.cpf);
+      if (e.placa && e.placa.length >= 3) a.vehicles.add(e.placa);
+      a.carrierVolume.set(e.carrierName, (a.carrierVolume.get(e.carrierName) || 0) + (e.weight || 0));
+    });
+
+    const tempoAgg = {}; // monthKey -> { sum, count, critico, vehicles:Set }
+    tempoSnap.forEach(doc => {
+      const e = doc.data();
+      const mk = e.monthKey;
+      if (!mk || mk === 'Sem Data') return;
+      if (!tempoAgg[mk]) tempoAgg[mk] = { sum: 0, count: 0, critico: 0, vehicles: new Set() };
+      const a = tempoAgg[mk];
+      if (typeof e.tempoUsina === 'number') { a.sum += e.tempoUsina; a.count++; if (e.tempoUsina >= 120) a.critico++; }
+      if (e.placa) a.vehicles.add(e.placa);
+    });
+
+    let recalculated = 0;
+    for (const mk of allMonths) {
+      const p = perfAgg[mk] || { volume: 0, trips: 0, div: 0, drivers: new Set(), vehicles: new Set(), carrierVolume: new Map() };
+      const t = tempoAgg[mk] || { sum: 0, count: 0, critico: 0, vehicles: new Set() };
+      let topCarrier = null, topCarrierVolume = 0;
+      p.carrierVolume.forEach((v, name) => { if (v > topCarrierVolume) { topCarrierVolume = v; topCarrier = name; } });
+      await db.collection('monthly_summary').doc(mk).set({
+        monthKey: mk, volume: p.volume, trips: p.trips, div: p.div,
+        drivers: p.drivers.size, vehicles: p.vehicles.size,
+        topCarrier, topCarrierVolume,
+        tempoSum: t.sum, tempoCount: t.count, tempoCritico: t.critico, tempoVehicles: t.vehicles.size,
+        updatedAt: Date.now()
+      });
+      recalculated++;
+      statusEl.innerText = `⏳ Recalculando resumos mensais... (${recalculated}/${allMonths.size})`;
+    }
+    logEl.innerText += `📅 Resumo mensal recalculado para ${recalculated} mês(es).\n`;
+
     logEl.innerText += `\n✅ Índice reconstruído com sucesso. Pode recarregar o dashboard normalmente agora.\n`;
     statusEl.innerText = '✅ Concluído.';
     loadMonthOptionsForDeletion();
