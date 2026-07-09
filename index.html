@@ -2506,6 +2506,30 @@ function handleUploadFile(file, statusElId) {
       }
 
       statusEl.innerText = `✅ ${perfFlat.length + tempoFlat.length} registros sincronizados.`;
+
+      // Relatório de auditoria: mostra se alguma linha da planilha foi ignorada e por quê,
+      // pra não haver dúvida se o total bate com o arquivo original.
+      const auditLines = [];
+      if (perfFlat.stats) {
+        const s = perfFlat.stats;
+        auditLines.push(`📦 Performance: ${s.totalDataRows} linha(s) no arquivo · ${s.valid} processada(s)` +
+          (s.skippedBlankCarrier ? ` · ${s.skippedBlankCarrier} ignorada(s) sem Transportadora preenchida` : '') +
+          (s.skippedEmptyRow ? ` · ${s.skippedEmptyRow} linha(s) vazia(s)` : ''));
+      }
+      if (tempoFlat.stats) {
+        const s = tempoFlat.stats;
+        auditLines.push(`⏱️ Tempo na Usina: ${s.totalDataRows} linha(s) no arquivo · ${s.valid} processada(s)` +
+          (s.skippedBlankPlaca ? ` · ${s.skippedBlankPlaca} ignorada(s) sem Placa preenchida` : '') +
+          (s.skippedNoTempoUsina ? ` · ${s.skippedNoTempoUsina} ignorada(s) sem Tempo na Usina válido` : '') +
+          (s.skippedEmptyRow ? ` · ${s.skippedEmptyRow} linha(s) vazia(s)` : ''));
+      }
+      if (auditLines.length) {
+        console.log('Auditoria de importação:\n' + auditLines.join('\n'));
+        const hasSkips = (perfFlat.stats && (perfFlat.stats.skippedBlankCarrier || perfFlat.stats.skippedEmptyRow)) ||
+                         (tempoFlat.stats && (tempoFlat.stats.skippedBlankPlaca || tempoFlat.stats.skippedEmptyRow || tempoFlat.stats.skippedNoTempoUsina));
+        if (hasSkips) showToast('⚠️ Algumas linhas foram ignoradas na importação — veja o console (F12) para detalhes.', 8000);
+      }
+
       document.getElementById('loading-msg').innerText = 'Carregando dashboard...';
       await loadFromFirestore();
     } catch (err) {
@@ -2587,10 +2611,13 @@ function buildPerfFlatEntries(rows) {
   if (cols.carrier === -1) return [];
 
   const flatEntries = [];
+  let skippedEmptyRow = 0, skippedBlankCarrier = 0;
+  const totalDataRows = rows.length - 1;
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || row.length === 0 || !row[cols.carrier]) continue;
+    if (!row || row.length === 0) { skippedEmptyRow++; continue; }
+    if (!row[cols.carrier]) { skippedBlankCarrier++; continue; }
 
     const carrierName = String(row[cols.carrier]).split('[')[0].trim();
     const cpf = cols.driver !== -1 ? extractCPF(row[cols.driver]) : '';
@@ -2639,6 +2666,7 @@ function buildPerfFlatEntries(rows) {
     flatEntries.push({ id: entryId, carrierName, cpf, placa, weight, material, isDiv, monthKey, dateTs, movimento });
   }
 
+  flatEntries.stats = { totalDataRows, valid: flatEntries.length, skippedEmptyRow, skippedBlankCarrier };
   return flatEntries;
 }
 
@@ -3077,10 +3105,13 @@ function buildTempoFlatEntries(rows) {
   if (cols.placa === -1 || (cols.tempoUsina === -1 && cols.tempoEntrePesos === -1)) return [];
 
   const entries = [];
+  let skippedEmptyRow = 0, skippedBlankPlaca = 0, skippedNoTempoUsina = 0;
+  const totalDataRows = rows.length - 1;
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || row.length === 0 || !row[cols.placa]) continue;
+    if (!row || row.length === 0) { skippedEmptyRow++; continue; }
+    if (!row[cols.placa]) { skippedBlankPlaca++; continue; }
 
     const placa = String(row[cols.placa] || '').trim().toUpperCase();
     let material = 'DIVERSOS';
@@ -3096,7 +3127,7 @@ function buildTempoFlatEntries(rows) {
     const tempoUsina = cols.tempoUsina !== -1 ? parseTimeStrToMinutes(row[cols.tempoUsina]) : null;
     const tempoEntrePesos = cols.tempoEntrePesos !== -1 ? parseTimeStrToMinutes(row[cols.tempoEntrePesos]) : null;
 
-    if (tempoUsina === null) continue;
+    if (tempoUsina === null) { skippedNoTempoUsina++; continue; }
 
     let monthKey = 'Sem Data';
     const dateTs = entradaTs;
@@ -3114,6 +3145,7 @@ function buildTempoFlatEntries(rows) {
     entries.push({ id: entryId, placa, material, tipoDoc, entradaTs, saidaTs, tempoUsina, tempoEntrePesos, monthKey, dateTs });
   }
 
+  entries.stats = { totalDataRows, valid: entries.length, skippedEmptyRow, skippedBlankPlaca, skippedNoTempoUsina };
   return entries;
 }
 
