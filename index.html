@@ -1646,12 +1646,17 @@ const TV_SLIDE_BUILDERS = {
 /* ==================== FIM MODO TV ==================== */
 
 function exportPageAsPNG() {
-  const pageEl = document.getElementById(currentPage === 'tempo' ? 'page-tempo' : 'page-performance');
+  const pageIdMap = { performance: 'page-performance', tempo: 'page-tempo', mensal: 'page-mensal', pesos: 'page-pesos' };
+  const pageEl = document.getElementById(pageIdMap[currentPage] || 'page-performance');
   if (!pageEl) return;
   showToast('Gerando imagem da página... isso pode levar alguns segundos.', 8000);
 
-  const chartGroup = currentPage === 'tempo' ? chartsTempo : charts;
-  const instances = Object.values(chartGroup).filter(c => c);
+  let instances;
+  if (currentPage === 'tempo') instances = Object.values(chartsTempo).filter(c => c);
+  else if (currentPage === 'mensal') instances = stateMensal.chart ? [stateMensal.chart] : [];
+  else if (currentPage === 'pesos') instances = [];
+  else instances = Object.values(charts).filter(c => c);
+
   instances.forEach(c => {
     c.config._showDataLabels = true;
     if (c.canvas && (c.canvas.id === 'chart-tempo-carriers' || c.canvas.id === 'chart-tempo-plates' || c.canvas.id === 'chart-tempo-daily')) {
@@ -1667,7 +1672,8 @@ function exportPageAsPNG() {
     useCORS: true
   }).then(canvas => {
     const link = document.createElement('a');
-    link.download = (currentPage === 'tempo' ? 'pagina_tempo_na_usina' : 'pagina_performance_transportadoras') + '.png';
+    const fileNames = { performance: 'pagina_performance_transportadoras', tempo: 'pagina_tempo_na_usina', mensal: 'pagina_visao_mensal', pesos: 'pagina_peso_liquido_x_fornecedor' };
+    link.download = (fileNames[currentPage] || 'pagina_dashboard') + '.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
     showToast('✅ Imagem da página gerada.');
@@ -1681,6 +1687,7 @@ function exportPageAsPNG() {
 function findChartInstance(canvasId) {
   for (const key in charts) { if (charts[key] && charts[key].canvas && charts[key].canvas.id === canvasId) return charts[key]; }
   for (const key in chartsTempo) { if (chartsTempo[key] && chartsTempo[key].canvas && chartsTempo[key].canvas.id === canvasId) return chartsTempo[key]; }
+  if (stateMensal.chart && stateMensal.chart.canvas && stateMensal.chart.canvas.id === canvasId) return stateMensal.chart;
   return null;
 }
 

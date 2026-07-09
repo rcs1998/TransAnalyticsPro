@@ -728,6 +728,9 @@ async function deleteSelectedMonthsBatch() {
   }
 
   logEl.innerText += `\n✅ Lote concluído: ${grandTotal} registro(s) apagado(s) em ${selected.length} mês(es).\n`;
+  logEl.innerText += 'Recalculando última data de cada base...\n';
+  await recomputeLastDate('performance_entries', 'performance_months');
+  await recomputeLastDate('tempo_usina_entries', 'tempo_months');
   statusEl.innerText = `✅ ${grandTotal} registro(s) apagado(s) em ${selected.length} mês(es). Pode subir as planilhas originais desses meses novamente.`;
   logEl.scrollTop = logEl.scrollHeight;
   loadMonthOptionsForDeletion();
@@ -749,6 +752,21 @@ async function deleteQueryInBatches(query, logEl, labelPrefix) {
     if (snap.size < 450) break; // último lote
   }
   return totalDeleted;
+}
+
+// Recalcula "lastDate" do zero, a partir dos documentos que realmente existem hoje —
+// evita que um valor antigo/errado fique "grudado" no meta para sempre.
+async function recomputeLastDate(collectionName, metaDocId) {
+  const isTempo = collectionName === 'tempo_usina_entries';
+  const snap = await db.collection(collectionName).get();
+  let maxDate = null;
+  snap.forEach(doc => {
+    const e = doc.data();
+    const d = isTempo ? (e.entradaTs || e.dateTs) : e.dateTs;
+    if (d && (maxDate === null || d > maxDate)) maxDate = d;
+  });
+  await db.collection('meta').doc(metaDocId).set({ lastDate: maxDate }, { merge: true });
+  return maxDate;
 }
 
 async function deleteMonth(collectionName, metaDocId, monthKey, statusElId, logElId) {
@@ -786,6 +804,10 @@ async function deleteMonth(collectionName, metaDocId, monthKey, statusElId, logE
     // Recalcula o resumo mensal (Visão Mensal) — reflete que esse lado (performance ou tempo) zerou
     logEl.innerText += 'Atualizando resumo mensal...\n';
     await computeAndSaveMonthlySummary(monthKey);
+
+    // Recalcula a "última data" do zero, pra não ficar presa num valor antigo
+    logEl.innerText += 'Recalculando última data...\n';
+    await recomputeLastDate(collectionName, metaDocId);
 
     logEl.innerText += `\n✅ Concluído: ${deleted} registro(s) apagado(s) de ${label}.\n`;
     statusEl.innerText = `✅ ${deleted} registro(s) apagado(s). Pode subir a planilha de ${label} novamente.`;
